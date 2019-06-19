@@ -16,7 +16,7 @@ from ..usb_types import USBPacketID, USBDirection
 
 
 class ViewSBProxyObserver(USBProxyFilter):
-    """ 
+    """
     USBProxy filter that observes all packets passing through it, without modification.
     Submits the relevant data to ViewSB for processing.
     """
@@ -73,7 +73,7 @@ class ViewSBProxyObserver(USBProxyFilter):
         return USBTransaction(**fields)
 
     def _get_device_address(self):
-        self.backend.proxy.libusb_device.address,
+        return self.backend.proxy.libusb_device.address
 
 
     def generate_handshake_transaction_packet(self, direction, stalled=False, ep_num=0, timestamp=None):

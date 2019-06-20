@@ -5,7 +5,11 @@ Decoders, and outputting data to a Frontend (e.g. our main GUI).
 
 import queue
 
+from .decoder import ViewSBDecoder
+from .decoders import *
+
 from .backend import ViewSBBackendProcess
+
 
 class ViewSBAnalyzer:
     """
@@ -23,7 +27,7 @@ class ViewSBAnalyzer:
                         and a tuple of arguments to that backend.
             frontend -- A 2-tuple, containing the type of frontend that will receive analyzed data, 
                         and a tuple of arguments to that frontend.
-            decoders -- A list of decoder objects to be applied. If not provided, all known decoders will be attempted;
+            decoders -- A list of decoder classes to be applied. If not provided, all known decoders will be attempted;
                         ViewSB decoders are intended to produce sane results with all filters enabled, so this is likely 
                         what you want.
         """
@@ -32,10 +36,10 @@ class ViewSBAnalyzer:
         if decoders is None:
 
             # FIXME: this should be ViewSBDecoder.__subclasses__
-            decoders = []
+            decoders = ViewSBDecoder.all_decoders()
 
-        # Store our decoders.
-        self.decoders = decoders[:]
+        # Instantiate each of our decoder classes.
+        self.decoders = [decoder(self) for decoder in decoders]
 
         # Create our analysis queue.
         self.analysis_queue = queue.Queue()
@@ -61,10 +65,37 @@ class ViewSBAnalyzer:
                 # If we're out of packets, return.
                 return
 
-            # XXX: temporary, for debug only
-            # apply all of the filters, here
-            print(repr(packet))
+            # Try to run the packet through all of our decoders.
+            handled = False
+            for decoder in self.decoders:
 
+                # See if the given decoder wants to consume this packet...
+                handled = decoder.handle_packet(packet)
+
+                # ... and if it was, break out of it.
+                if handled:
+                    break
+
+            # If the packet wasn't consumed by any our decoders,
+            # we're done processing it. Emit it to the frontend.
+            if not handled:
+                self.emit_to_frontend(packet)
+
+
+    def emit_to_frontend(self, packet):
+        """ Emits a given packet to the frontend, for use. """
+
+        # XXX: temporary, for debug only
+        # just print; no fancy frontend
+        print(repr(packet))
+
+
+    def add_packet_to_analysis_queue(self, packet):
+        """
+        Adds the provided packet to the analysis queue.
+        Intended for use by the decoder API; not recommended for general use.
+        """
+        self.analysis_queue.put(packet)
 
 
     def fetch_backend_packets(self):

@@ -162,7 +162,7 @@ class ViewSBPacket:
         SUMMARY_LENGTH_BYTES = 8
 
         # Return an empty string if no data is present.
-        if self.data is None:
+        if not self.data:
             return ""
 
         # By default, grab a hex representation of the first 32 bytes.
@@ -205,7 +205,9 @@ class ViewSBPacket:
     def __repr__(self):
         """ Provide a quick, console-friendly representation of our data."""
 
-        if self.data:
+        summary = self.summarize_data()
+
+        if summary:
             data_summary = " [{}]".format(self.summarize_data())
         else:
             data_summary = ""
@@ -225,7 +227,7 @@ class ViewSBPacket:
 class USBPacket(ViewSBPacket):
     """ Class describing a raw USB packet. """
 
-    FIELDS = {'pid'}
+    FIELDS = {'pid', 'sync_valid'}
 
     def validate(self):
         # Parse the PID fields as PIDs.
@@ -251,7 +253,7 @@ class USBPacket(ViewSBPacket):
         # Extract the PID from the first byte of the packet.
         packet_id = USBPacketID.parse(data.pop(0))
 
-        # Store the remainder of the packet as the packet's data;
+        # Store generthe remainder of the packet as the packet's data;
         # and wrap this in our packet object.
         return cls(pid=packet_id, data=data, **fields)
 
@@ -259,6 +261,70 @@ class USBPacket(ViewSBPacket):
 
     # TODO: detailed representation
 
+class USBTokenPacket(USBPacket):
+    """ Class representing a token packet. """
+
+    FIELDS = {'crc5', 'crc_valid'}
+
+    def validate(self):
+
+        # Fill in our direction from our PID.
+        self.direction = self.pid.direction().name
+
+        # TODO: validate crc5
+
+    def generate_summary(self):
+            return "{} token".format(self.pid.summarize())
+
+    def summarize_data(self):
+            return "address={}, endpoint=0x{:02x}, direction={}".format(
+                    self.device_address, self.endpoint_number, self.direction)
+
+
+class USBDataPacket(USBPacket):
+    """ Class representing a data packet. """
+
+    FIELDS = {'crc16', 'crc_valid'}
+
+    def validate(self):
+        # TODO: validate crc16
+        pass
+
+    def generate_summary(self):
+        return "{} bytes; {}".format(len(self.data), self.pid.summarize())
+
+    def summarize_data(self):
+
+        if len(self.data) == 0:
+            return "ZLP"
+        else:
+            return super().summarize_data()
+
+
+
+
+class USBHandshakePacket(USBPacket):
+    """ Handshake packets contain only their PIDs. """
+
+    def generate_summary(self):
+        return self.pid.summarize()
+
+class MalformedPacket(USBPacket):
+    """ Class representing a generic malformed packet. """
+
+    def validate(self):
+
+        if self.status is None:
+            self.status = 0
+
+        # Malformed packets are always a protocol error.
+        self.status |= ViewSBStatus.ERROR
+
+    def generate_summary(self):
+       if self.pid:
+           return "{} packet; malformed".format(self.pid.summarize())
+       else:
+           return "malformed packet"
 
 
 class USBTransaction(ViewSBPacket):
@@ -398,7 +464,6 @@ class USBControlTransfer(USBTransfer):
             return "-> STALL"
         else:
             return "-> ACK"
-
 
     def validate(self):
 

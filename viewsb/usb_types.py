@@ -150,14 +150,16 @@ class USBPacketID(IntFlag):
     def direction(self):
         """ Get a USB direction from a PacketID. """
 
-        if self is SOF:
+        if self is self.SOF:
             return None
 
-        if self is SETUP or self is OUT:
+        if self is self.SETUP or self is self.OUT:
             return USBDirection.OUT
 
-        if self is IN:
+        if self is self.IN:
             return USBDirection.IN
+
+        raise ValueError("cannot determine the direction of a non-token PID")
 
 
 

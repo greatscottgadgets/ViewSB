@@ -12,6 +12,7 @@ setup(
     author_email='k@ktemkin.com',
     tests_require=[''],
     install_requires= [
+        'bitstruct',
         'facedancer', 
         'greatfet',
         'pyopenvizsla'

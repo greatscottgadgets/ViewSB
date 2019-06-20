@@ -144,6 +144,19 @@ class USBPacketID(IntFlag):
         """ Returns true if this object is an attempt to encapsulate an invalid PID. """
         return (self & self.PID_INVALID)
 
+    def direction(self):
+        """ Get a USB direction from a PacketID. """
+
+        if self is SOF:
+            return None
+
+        if self is SETUP or self is OUT:
+            return USBDirection.OUT
+
+        if self is IN:
+            return USBDirection.IN
+
+
 
     def summarize(self):
         """ Return a summary of the given packet. """

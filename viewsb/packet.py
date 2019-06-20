@@ -34,7 +34,7 @@ class ViewSBPacket:
     Not to be confused with raw USB Packets, which are a very specific type of packet involved herein.
     """
 
-    FIELDS = {'timestamp', 'device_address', 'endpoint_number', 'direction', 'status', 'style', 
+    FIELDS = {'timestamp', 'device_address', 'endpoint_number', 'direction', 'status', 'style',
         'data', 'summary', 'data_summary', 'subordinate_packets'}
 
     @classmethod
@@ -73,7 +73,7 @@ class ViewSBPacket:
 
 
     def validate(self):
-        """ 
+        """
         Validates the object's internal fields, normalizing data where necessary, and raises a ValueError (or similar)
         if any fields contain values that are invalid or unable to be normalized.
         """
@@ -121,10 +121,10 @@ class ViewSBPacket:
 
         return {
             'timestamp':       self.timestamp,
-            'length':          len(self.data),
+            'length':          len(self.data) if self.data is not None else None,
             'device_address':  self.device_address,
             'endpoint':        self.endpoint_number,
-            'is_in':           self.direction.is_in(),
+            'is_in':           self.direction,
             'status':          self.status,
             'style':           self.style,
             'summary':         self.summarize(),
@@ -187,11 +187,11 @@ class ViewSBPacket:
         """ Returns a full set of 'detail' structures that attempt to break this packet down in full detail.
 
         Each entry in the list is a 2-tuple, with the first element being a table title, and the second element
-        being a string-to-string dictionary that can be represented as a two-column table. 
-        
+        being a string-to-string dictionary that can be represented as a two-column table.
+
         For example, this function might return:
-            ('Setup Packet', {'Direction': 'OUT', 'Recipient': 'Device', 'Type': 'Standard', 
-                              'Request': 'Get Descriptor (0x06)', 'Index:' 0, 'Value': 'Device Descriptor (0x100)', 
+            ('Setup Packet', {'Direction': 'OUT', 'Recipient': 'Device', 'Type': 'Standard',
+                              'Request': 'Get Descriptor (0x06)', 'Index:' 0, 'Value': 'Device Descriptor (0x100)',
                               'Length': '18'  })
         """
         return (self.summarize(), self.summarize_data())
@@ -235,7 +235,7 @@ class USBPacket(ViewSBPacket):
     def generate_summary(self):
         if self.pid is None:
             return "unknown packet"
-        elif self.pid.is_data() and len(self.data) == 0:
+        elif self.pid.is_data() and self.data is not None and len(self.data) == 0:
             return "zero-length packet"
         else:
             return "{}.packet".format(self.pid.summarize())
@@ -289,13 +289,13 @@ class USBTransfer(ViewSBPacket):
 
 
 class USBSetupTransaction(USBTransaction):
-    """ 
-    Class describing a USB setup transaction, which is a specialized transaction that 
-    contains metadata for a control transfer. 
+    """
+    Class describing a USB setup transaction, which is a specialized transaction that
+    contains metadata for a control transfer.
     """
 
     FIELDS = {
-        'request_direction', 'request_type', 'recipient', 'request_number', 
+        'request_direction', 'request_type', 'recipient', 'request_number',
         'value', 'index', 'request_length', 'handshake'
     }
 

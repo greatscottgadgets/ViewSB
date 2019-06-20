@@ -225,7 +225,7 @@ class ViewSBPacket:
 class USBPacket(ViewSBPacket):
     """ Class describing a raw USB packet. """
 
-    FIELDS = {'pid', 'sync_valid', 'crc_valid'}
+    FIELDS = {'pid'}
 
     def validate(self):
         # Parse the PID fields as PIDs.
@@ -238,7 +238,24 @@ class USBPacket(ViewSBPacket):
         elif self.pid.is_data() and self.data is not None and len(self.data) == 0:
             return "zero-length packet"
         else:
-            return "{}.packet".format(self.pid.summarize())
+            return "{} packet".format(self.pid.summarize())
+
+
+    @classmethod
+    def from_raw_packet(cls, raw_packet, **fields):
+        """ Create a new USBPacket object from a raw set of packet data. """
+
+        # Create a copy of the raw packet so we can work with it.
+        data = raw_packet[:]
+       
+        # Extract the PID from the first byte of the packet.
+        packet_id = USBPacketID.parse(data.pop(0))
+
+        # Store the remainder of the packet as the packet's data;
+        # and wrap this in our packet object.
+        return cls(pid=packet_id, data=data, **fields)
+
+
 
     # TODO: detailed representation
 

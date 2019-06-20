@@ -81,9 +81,8 @@ class ViewSBProxyObserver(USBProxyFilter):
 
         if timestamp is None:
             timestamp = self.backend.get_microseconds()
-
-        return USBTransaction(token=direction.token(), data_pid=USBPacketID.DATA1, 
-            handshake=USBPacketID.STALL if stalled else USBPacketID.ACK, timestamp=timestamp, data=[])
+        return USBTransaction(token=direction.token(), data_pid=USBPacketID.DATA1,
+            handshake=USBPacketID.STALL if stalled else USBPacketID.ACK, timestamp=timestamp, data=bytes([]))
 
 
     def generate_control_transfer_packet(self, req, data, stalled=False, ep_num=0):
@@ -135,6 +134,8 @@ class ViewSBProxyObserver(USBProxyFilter):
         # This starts a new transaction, so emit any pending packets.
         self._emit_pending_packet()
 
+        data = bytes(data)
+
         # Emit the packet for the given control request.
         self._emit_packet(self.generate_control_transfer_packet(req, data, stalled))
 
@@ -144,6 +145,8 @@ class ViewSBProxyObserver(USBProxyFilter):
     def filter_control_out(self, req, data):
         # This starts a new transaction, so emit any pending packets.
         self._emit_pending_packet()
+
+        data = bytes(data)
 
         # We have most of a control request, but we don't yet have whether the given request stalled.
         # We'll generate the request, but leave it pending until we get another request (and thus know that the 
@@ -166,6 +169,8 @@ class ViewSBProxyObserver(USBProxyFilter):
         # This starts a new transaction, so emit any pending packets.
         self._emit_pending_packet()
 
+        data = bytes(data)
+
         # Emit the packet for the given control request.
         # FIXME: this should capture stalls!
         self._emit_packet(self.generate_data_transfer_packet(USBDirection.IN, ep_num, data, False))
@@ -177,6 +182,8 @@ class ViewSBProxyObserver(USBProxyFilter):
     def filter_out(self, ep_num, data):
         # This starts a new transaction, so emit any pending packets.
         self._emit_pending_packet()
+
+        data = bytes(data)
 
         # We have most of a transfer, but we don't yet have whether the given transfer stalled.
         # We'll generate the packet, but leave it pending until we get another request (and thus know that it did not stall.)

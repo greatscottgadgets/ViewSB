@@ -43,8 +43,8 @@ class ViewSBBackendProcess:
 
 
     def read_packet(self, blocking=True, timeout=None):
-        """ Reads a packet from the background process. 
-        
+        """ Reads a packet from the background process.
+
         Args:
             blocking -- If set, the read will block until a packet is available.
             timeout -- The longest time to wait on a blocking read, in floating-point seconds.
@@ -54,7 +54,7 @@ class ViewSBBackendProcess:
 
     @staticmethod
     def _subordinate_process_entry(backend_class, arguments, output_queue, termination_event):
-        """ 
+        """
         Helper function for running a backend in a blocking manner. This method should usually be called in a subordinate
         process managed by multiprocessing. You probably want the public API of ViewSBBackgroundProcess.
         """

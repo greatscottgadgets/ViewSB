@@ -2,10 +2,8 @@
 ViewSB backend class defintions -- defines the abstract base for things that capture USB data.
 """
 
+import io
 import multiprocessing
-
-
-
 
 
 class ViewSBBackendProcess:
@@ -124,6 +122,54 @@ class ViewSBBackend:
 
 
 
+class FileBackend(ViewSBBackend):
+    """ Generic class for mass parsing packets from files. """
+
+    # Provided for the default implementation of run_capture.
+    # Specifies the amount of data that should be read from the file at once.
+    # If none, we'll try to read all of the data available at once. :)
+    # Defaults to a sane value for reading regular files, per python.
+    # Not (directly) used if `next_read_size()` is overridden.
+    READ_CHUNK_SIZE = io.DEFAULT_BUFFER_SIZE
+
+    def __init__(self, target_filename):
+        
+        # Open the relevant file for reading. 
+        self.target_file = open(target_filename, 'rb')
+
+
+    def next_read_size(self):
+        """ Returns the amount of data that should be read in the next read. """
+        return self.READ_CHUNK_SIZE
+
+
+    def read(self, length):
+        """ 
+        Read handler that the subclass can call to perform a manual read. 
+        Useful for grabbing data payloads following a header captured by `capture_data`.
+        """
+        return self.target_file.read(length)
+
+
+    def run_capture(self):
+        """ 
+        Primary capture function: reads a single chunk from the file, and passes
+        it to `handle_data` for conversion into ViewSB packets.
+        """
+
+        # Attempt to read a chunk from the given file.
+        data = self.target_file.read(self.READ_CHUNK_SIZE)
+
+        # If we have data, handle it.
+        if data:
+            self.handle_data(data)
+
+        #TODO: handle EOF
+
+
+    def handle_data(self, data):
+        """ Handle chunks of data read from the relevant file. """
+        raise NotImplementedError("subclass must implement handle_data()")
 
 
 

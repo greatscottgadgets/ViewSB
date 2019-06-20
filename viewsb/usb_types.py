@@ -20,6 +20,11 @@ class USBDirection(IntEnum):
         """ Helper method that extracts the direction from a request_type integer. """
         return cls(request_type_int >> 7)
 
+    @classmethod
+    def from_endpoint_address(cls, address):
+        """ Helper method that extracts the direction from an endpoint address. """
+        return cls(address >> 7)
+
     def token(self):
         """ Generates the token corresponding to the given direction. """
         return USBPacketID.IN if (self is self.IN) else USBPacketID.OUT
@@ -223,5 +228,15 @@ class USBRequestType(IntEnum):
         MASK  = 0b11111
         return cls(request_type_int & MASK)
 
+
+class USBTransferType(IntEnum):
+    CONTROL     = 0
+    ISOCHRONOUS = 1
+    BULK        = 2
+    INTERRUPT   = 3
+
+
+def endpoint_number_from_address(number):
+    return number & 0x7F 
 
 

@@ -213,7 +213,9 @@ class ViewSBPacket:
             data_summary = ""
 
         # Quick stab at some nice formatting for console output.
-        description =  "<{}: {}{} {}>".format(type(self).__name__, self.summarize(), data_summary, self.summarize_status())
+        description =  "<{}: d{}:e{:02x} {}{} {}>".format(
+            type(self).__name__, self.device_address, self.endpoint_number,
+            self.summarize(), data_summary, self.summarize_status())
 
         # Quick hack.
         for subordinate in self.subordinate_packets:
@@ -309,6 +311,19 @@ class USBHandshakePacket(USBPacket):
     def generate_summary(self):
         return self.pid.summarize()
 
+
+
+
+
+class USBStatusTransfer(USBHandshakePacket):
+    """ 
+    USB status transfers are very similar to handshakes -- they're just
+    one level up the abstraction ladder. Re-use that code.
+    """
+
+    pass
+
+
 class MalformedPacket(USBPacket):
     """ Class representing a generic malformed packet. """
 
@@ -328,7 +343,10 @@ class MalformedPacket(USBPacket):
 
 
 class USBTransaction(ViewSBPacket):
-    """ Class describing a transaction, which is a representation of a TOKEN, optional DATA, and HANDSHAKE packet. """
+    """ 
+    Class describing a raw USB transaction, which is a representation of a TOKEN, 
+    optional DATA, and HANDSHAKE packet. 
+    """
 
     FIELDS = {'token', 'handshake', 'data_pid'}
 
@@ -351,7 +369,6 @@ class USBTransaction(ViewSBPacket):
         else:
             return super().summarize_status()
 
-
     @property
     def stalled(self):
         return self.handshake == USBPacketID.STALL
@@ -361,13 +378,73 @@ class USBTransaction(ViewSBPacket):
         self.handshake = USBPacketID.STALL if value else USBPacketID.ACK
 
 
-
 class USBTransfer(ViewSBPacket):
     """ Class describing a generic USB transfer, which is the a collection of conceptually-grouped transfers. """
 
-    FIELDS = {'data_toggle_valid', 'stalled'}
+    FIELDS = {'pid', 'handshake'}
 
-    # TODO: validate data toggles
+    def summarize(self):
+        return "{}B {} unspecified transfer".format(len(self.data), self.direction.name)
+
+    def validate(self):
+        self.parse_field_as_pid('pid',       required=False)
+        self.parse_field_as_pid('handshake', required=False)
+
+
+
+class USBDataTransaction(USBTransaction):
+    """ Class describing a data-carrying transation. """
+
+    FIELDS = {'data_pid', 'handshake'}
+
+    def validate(self):
+        self.parse_field_as_pid('data_pid',  required=False)
+        self.parse_field_as_pid('handshake', required=False)
+
+
+class USBDataTransfer(USBTransaction, USBTransfer):
+    """ Class describing a sequence of logcially grouped, data-carrying transfers. """
+
+    FIELDS = {'pid_sequence_ok', 'handshake'}
+
+    def summarize(self):
+        return "{}B {} transfer".format(len(self.data), self.direction.name)
+
+    def validate(self):
+        self.parse_field_as_pid('data_pid',  required=False)
+        self.parse_field_as_pid('handshake', required=False)
+
+
+class USBTransferFragment(USBTransfer):
+    """ 
+    Class representing a piece of USB data that was the result of an incomplete capture,
+    or data error.
+    """
+
+    FIELDS = {'transfer_type'}
+
+    def summarize(self):
+        return "ORPHANED {}B {}-{} tranfer".format(len(self.data), self.direction.name, self.pid.name)
+
+
+class USBBulkTransfer(USBDataTransfer):
+    
+    def summarize(self):
+        return "bulk {} transfer ({})".format(self.direction.name, len(self.data))
+
+
+class USBInterruptTransfer(USBDataTransfer):
+    
+    def summarize(self):
+        return "interrupt {} transfer ({})".format(self.direction.name, len(self.data))
+
+
+class USBIsochronousTransfer(USBDataTransfer):
+    
+    def summarize(self):
+        return "isochronous {} transfer ({})".format(self.direction.name, len(self.data))
+
+
 
 
 
@@ -413,13 +490,24 @@ class USBSetupTransaction(USBTransaction):
 
 
 
+class USBSetupTransfer(USBSetupTransaction):
+    """ Synonym for a USBSetupTransaction, as those contain only one real transaction. 
+    
+    Technically, we can contain subordinate USBSetupTransactions that have transmission
+    errors; so this is slightly semantically different in what you'd expect in 
+    subordinate_packets.
+    """
+    pass
+
+
+
 class USBControlTransfer(USBTransfer):
     """ Class representing a USB control transfer. """
 
     FIELDS = {'request_type', 'recipient', 'request_number', 'value', 'index', 'request_length', 'stalled'}
 
     @classmethod
-    def from_subordinates(cls, setup_transaction, data_transfer, handshake_transaction):
+    def from_subordinates(cls, setup_transfer, data_transfer, status_transfer):
         """ Generates a USB Control Transfer packet from its subordinate transfers. """
 
         fields = {}
@@ -429,10 +517,10 @@ class USBControlTransfer(USBTransfer):
 
         # Copy each of our local fields from the Setup transaction.
         for field in fields_to_copy_from_setup:
-            fields[field] = getattr(setup_transaction, field)
+            fields[field] = getattr(setup_transfer, field)
 
         # Set the overall direction to the direction indicated in the SETUP transaction.
-        fields['direction'] = setup_transaction.request_direction
+        fields['direction'] = setup_transfer.request_direction
 
         # If we have a data transaction, then copy our data from it.
         if data_transfer:
@@ -442,11 +530,11 @@ class USBControlTransfer(USBTransfer):
 
         # Set the transfer to stalled if the handshake token is stalled.
         fields['stalled'] = \
-            (handshake_transaction and handshake_transaction.handshake == USBPacketID.STALL) or \
+            (status_transfer and status_transfer.pid == USBPacketID.STALL) or \
             (data_transfer and data_transfer.handshake == USBPacketID.STALL)
 
         # Set our subordinate packets to the three packets we're consuming.
-        subordinates = [setup_transaction, data_transfer, handshake_transaction]
+        subordinates = [setup_transfer, data_transfer, status_transfer]
         fields['subordinate_packets'] = [s for s in subordinates if s is not None]
 
         # Finally, return our instance.

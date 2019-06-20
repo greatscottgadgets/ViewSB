@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+__pycache__/G
 *.py[cod]
 *$py.class
 
@@ -125,3 +125,5 @@ dmypy.json
 
 __pycache__
 .vscode
+
+.ccls-cache

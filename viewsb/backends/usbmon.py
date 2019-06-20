@@ -368,6 +368,7 @@ class USBMonBackend(ViewSBBackend):
         fields['request_length']    = submission.request_length
         fields['data']              = submission.get_setup_data()
         fields['token']             = USBPacketID.SETUP
+        fields['handshake']         = USBPacketID.ACK
 
         # ... and convert the fields into a USBSetupTransfer packet.
         return USBSetupTransfer(**fields)

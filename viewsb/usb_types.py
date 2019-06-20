@@ -206,10 +206,9 @@ class USBRequestRecipient(IntEnum):
     @classmethod
     def from_request_type(cls, request_type_int):
         """ Helper method that extracts the type from a request_type integer. """
-        SHIFT = 5
-        MASK  = 0b11
 
-        return cls.from_integer((request_type_int >> SHIFT) & MASK)
+        MASK  = 0b11111
+        return cls(request_type_int & MASK)
 
 
 class USBRequestType(IntEnum):
@@ -223,10 +222,12 @@ class USBRequestType(IntEnum):
 
     @classmethod
     def from_request_type(cls, request_type_int):
-        """ Helper method that extracts the type from a request_type integer. """
 
-        MASK  = 0b11111
-        return cls(request_type_int & MASK)
+        """ Helper method that extracts the type from a request_type integer. """
+        SHIFT = 5
+        MASK  = 0b11
+
+        return cls((request_type_int >> SHIFT) & MASK)
 
 
 class USBTransferType(IntEnum):

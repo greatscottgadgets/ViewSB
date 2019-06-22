@@ -190,16 +190,21 @@ class ViewSBPacket:
         being a string-to-string dictionary that can be represented as a two-column table.
 
         For example, this function might return:
-            ('Setup Packet', {'Direction': 'OUT', 'Recipient': 'Device', 'Type': 'Standard',
+            [('Setup Packet', {'Direction': 'OUT', 'Recipient': 'Device', 'Type': 'Standard',
                               'Request': 'Get Descriptor (0x06)', 'Index:' 0, 'Value': 'Device Descriptor (0x100)',
-                              'Length': '18'  })
+                              'Length': '18'  })]
         """
-        return (self.summarize(), self.summarize_data())
+        return [(self.summarize(), {'Data': self.summarize_data()})]
 
 
     def get_raw_data(self):
         """ Returns a byte-string of raw data, suitable for displaying in a hex inspection field. """
         return bytes(self.data)
+
+
+    @staticmethod
+    def _include_details_in_debug():
+        """ Returns true iff the given packet's details should be included in its debug output. """
 
 
     def __repr__(self):
@@ -243,6 +248,7 @@ class USBPacket(ViewSBPacket):
             return "zero-length packet"
         else:
             return "{} packet".format(self.pid.summarize())
+
 
 
     @classmethod
@@ -445,9 +451,6 @@ class USBIsochronousTransfer(USBDataTransfer):
         return "isochronous {} transfer ({})".format(self.direction.name, len(self.data))
 
 
-
-
-
 class USBSetupTransaction(USBTransaction):
     """
     Class describing a USB setup transaction, which is a specialized transaction that
@@ -458,6 +461,9 @@ class USBSetupTransaction(USBTransaction):
         'request_direction', 'request_type', 'recipient', 'request_number',
         'value', 'index', 'request_length', 'handshake'
     }
+
+    def summarize_data(self):
+        return "value={:04x} index={:04x} length={:04x}".format(self.value, self.index, self.request_length)
 
     @classmethod
     def from_setup_data(cls, setup_data, **fields):

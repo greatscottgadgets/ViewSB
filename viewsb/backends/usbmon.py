@@ -335,8 +335,11 @@ class USBMonBackend(ViewSBBackend):
         Returns a transfer that represents the status stage of the control transfer represented
         by this event.
         """
-        handshake = self._get_handshake_for_event(event)
-        return USBStatusTransfer(pid=handshake, **self._common_packet_fields_for_event(event))
+        handshake      = self._get_handshake_for_event(event)
+        fields         = self._common_packet_fields_for_event(event)
+        fields['data'] = None
+
+        return USBStatusTransfer(pid=handshake, **fields)
 
 
     def _generate_setup_transfer_for_submission(self, submission):

@@ -1,0 +1,93 @@
+Process TUIFrontend UI process:
+Traceback (most recent call last):
+  File "/usr/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/ktemkin/Projects/viewsb/viewsb/frontend.py", line 93, in _subordinate_process_entry
+    frontend.run()
+  File "/home/ktemkin/Projects/viewsb/viewsb/frontends/tui.py", line 190, in run
+    self.loop.run()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 286, in run
+    self._run()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 384, in _run
+    self.event_loop.run()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 789, in run
+    self._loop()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 817, in _loop
+    self._entering_idle()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 778, in _entering_idle
+    callback()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 572, in entering_idle
+    self.draw_screen()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/main_loop.py", line 587, in draw_screen
+    canvas = self._topmost_widget.render(self.screen_size, focus=True)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/widget.py", line 144, in cached_render
+    canv = fn(self, size, focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/container.py", line 1086, in render
+    focus and self.focus_part == 'body')
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/widget.py", line 144, in cached_render
+    canv = fn(self, size, focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/decoration.py", line 226, in render
+    canv = self._original_widget.render(size, focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/widget.py", line 144, in cached_render
+    canv = fn(self, size, focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/container.py", line 2087, in render
+    focus = focus and self.focus_position == i)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/widget.py", line 144, in cached_render
+    canv = fn(self, size, focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/listbox.py", line 471, in render
+    (maxcol, maxrow), focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/listbox.py", line 353, in calculate_visible
+    self._set_focus_complete( (maxcol, maxrow), focus )
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/listbox.py", line 718, in _set_focus_complete
+    (maxcol,maxrow), focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/listbox.py", line 688, in _set_focus_first_selectable
+    (maxcol, maxrow), focus=focus)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/listbox.py", line 356, in calculate_visible
+    focus_widget, focus_pos = self._body.get_focus()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/treetools.py", line 392, in get_focus
+    widget = self.focus.get_widget()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/treetools.py", line 215, in get_widget
+    self._widget = self.load_widget()
+  File "/home/ktemkin/Projects/viewsb/viewsb/frontends/tui.py", line 60, in load_widget
+    return VSBPacketWidget(self, self.get_value())
+  File "/home/ktemkin/Projects/viewsb/viewsb/frontends/tui.py", line 18, in __init__
+    super().__init__(parent)
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/treetools.py", line 53, in __init__
+    widget = self.get_indented_widget()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/treetools.py", line 63, in get_indented_widget
+    widget = self.get_inner_widget()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/treetools.py", line 83, in get_inner_widget
+    self._innerwidget = self.load_inner_widget()
+  File "/home/ktemkin/.local/lib/python3.7/site-packages/urwid/treetools.py", line 87, in load_inner_widget
+    return urwid.Text(self.get_display_text())
+  File "/home/ktemkin/Projects/viewsb/viewsb/frontends/tui.py", line 26, in get_display_text
+    packet = self.packet()
+AttributeError: 'VSBPacketWidget' object has no attribute 'packet'
+Process USBMonFileBackend capture process:
+Traceback (most recent call last):
+  File "/usr/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/ktemkin/Projects/viewsb/viewsb/backend.py", line 67, in _subordinate_process_entry
+    backend.run()
+  File "/home/ktemkin/Projects/viewsb/viewsb/backend.py", line 113, in run
+    self.run_capture()
+  File "/home/ktemkin/Projects/viewsb/viewsb/backend.py", line 161, in run_capture
+    data = self.target_file.read(self.READ_CHUNK_SIZE)
+KeyboardInterrupt
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/usr/lib/python3.7/multiprocessing/util.py", line 265, in _run_finalizers
+    finalizer()
+  File "/usr/lib/python3.7/multiprocessing/util.py", line 189, in __call__
+    res = self._callback(*self._args, **self._kwargs)
+  File "/usr/lib/python3.7/multiprocessing/queues.py", line 192, in _finalize_join
+    thread.join()
+  File "/usr/lib/python3.7/threading.py", line 1032, in join
+    self._wait_for_tstate_lock()
+  File "/usr/lib/python3.7/threading.py", line 1048, in _wait_for_tstate_lock
+    elif lock.acquire(block, timeout):
+KeyboardInterrupt

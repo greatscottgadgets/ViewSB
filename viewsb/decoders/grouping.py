@@ -24,10 +24,8 @@ class USBPacketSpecializer(ViewSBDecoder):
     CRC16_LENGTH             = 2
     MAXIMUM_PACKET_PAYLOAD   = 1026
 
-
     def can_handle_packet(self, packet):
         return type(packet) == USBPacket
-
 
     def _consume_token_packet(self, packet):
         """ Consumes a packet known to be a token packet. """

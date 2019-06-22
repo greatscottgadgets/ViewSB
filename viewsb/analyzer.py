@@ -9,6 +9,7 @@ from .decoder import ViewSBDecoder
 from .decoders import *
 
 from .backend import ViewSBBackendProcess
+from .frontend import ViewSBFrontendProcess
 
 
 class ViewSBAnalyzer:
@@ -48,7 +49,10 @@ class ViewSBAnalyzer:
         backend_class, backend_arguments = backend
         self.backend = ViewSBBackendProcess(backend_class, *backend_arguments)
         
-        # TODO: Create -- but don't start -- our frontend process.
+        # Create -- but don't start -- our frontend process.
+        frontend_class, frontend_arguments = frontend
+        self.frontend = ViewSBFrontendProcess(frontend_class, *frontend_arguments)
+
 
 
     def process_analysis_queue(self):
@@ -85,9 +89,9 @@ class ViewSBAnalyzer:
     def emit_to_frontend(self, packet):
         """ Emits a given packet to the frontend, for use. """
 
-        # XXX: temporary, for debug only
-        # just print; no fancy frontend
-        print(repr(packet))
+        # Pass the packet to the frontend.
+        self.frontend.issue_packet(packet)
+
 
 
     def add_packet_to_analysis_queue(self, packet):
@@ -106,7 +110,7 @@ class ViewSBAnalyzer:
 
         try:
             # Read a packet from the backend, and add it to our analysis queue.
-            packet = self.backend.read_packet(timeout=self.process_analysis_queue)
+            packet = self.backend.read_packet(timeout=self.PACKET_READ_TIMEOUT)
             self.analysis_queue.put(packet)
 
         except queue.Empty:
@@ -118,6 +122,7 @@ class ViewSBAnalyzer:
         """ Run this core analysis thread until the frontend requests we stop. Performs the USB analysis itself. """
 
         self.backend.start()
+        self.frontend.start()
 
         # FIXME: this should ask the FrontendProcess object whether it should halt.
         try:
@@ -131,3 +136,4 @@ class ViewSBAnalyzer:
 
         # FIXME: signal to the frontend to stop (if it didn't signal us to stop?)
         self.backend.stop()
+        self.frontend.stop()

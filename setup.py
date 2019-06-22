@@ -12,7 +12,9 @@ setup(
     author_email='k@ktemkin.com',
     tests_require=[''],
     install_requires= [
+        'construct',
         'bitstruct',
+        'tableprint',
         'facedancer', 
         'greatfet',
         'pyopenvizsla'

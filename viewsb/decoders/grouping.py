@@ -164,5 +164,3 @@ class USBTransactionDecoder(ViewSBDecoder):
 
 
 
-
-

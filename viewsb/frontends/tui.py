@@ -203,7 +203,7 @@ class TUIFrontend(ViewSBFrontend):
     def unhandled_input(self, k):
         """ Handle any input that's not handled by e.g. the focused widget. """
 
-        if k in 'qQ':
+        if k in ('q', 'Q'):
             raise urwid.ExitMainLoop()
 
 

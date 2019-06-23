@@ -66,7 +66,10 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
 
     def get_name_for_class(self, decoded):
 
-        triplet = decoded.bDeviceClass, decoded.bDeviceSubclass, decoded.bDeviceProtocol
+        try:
+            triplet = decoded.bDeviceClass, decoded.bDeviceSubclass, decoded.bDeviceProtocol
+        except AttributeError:
+            return ""
 
         # XXX: look up these in a big array
         if triplet == (0,0,0):
@@ -94,7 +97,7 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
                 decoded.idVendor, 
                 decoded.idProduct,
                 class_text)
-        except KeyError:
+        except (KeyError, TypeError, AttributeError):
             return super().summarize_data()
 
 

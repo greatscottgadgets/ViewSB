@@ -222,7 +222,7 @@ class ViewSBPacket:
             data_summary = ""
 
         # Quick stab at some nice formatting for console output.
-        description =  "<{}: d{}:e{:02x} {}{} {}>".format(
+        description =  "<{}: d{}:e{} {}{} {}>".format(
             type(self).__name__, self.device_address, self.endpoint_number,
             self.summarize(), data_summary, self.summarize_status())
 
@@ -343,7 +343,7 @@ class MalformedPacket(USBPacket):
             self.status = 0
 
         # Malformed packets are always a protocol error.
-        self.status |= ViewSBStatus.ERROR
+        #self.status |= ViewSBStatus.ERROR
 
     def generate_summary(self):
        if self.pid:

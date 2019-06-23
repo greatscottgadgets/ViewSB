@@ -82,7 +82,7 @@ class ViewSBFrontend:
 
 
     def handle_communications(self):
-        """ 
+        """
         Function that handles communications with our analyzer process.
         Should be called repeatedly during periods when the UI thread is not busy;
         if you override run(). it's your responsibility to call this function.
@@ -94,7 +94,7 @@ class ViewSBFrontend:
 
             # Try to fetch a packet from the analyzer.
             packet = self.fetch_packet_from_analyzer()
-            
+
             # If we got one, handle using it in our UI.
             if not packet:
                 break

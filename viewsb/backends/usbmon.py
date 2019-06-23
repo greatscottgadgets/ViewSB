@@ -122,7 +122,7 @@ class USBMonBackend(ViewSBBackend):
 
         # Create an empty mapping that will store pending URBs; indexed by tag.
         self.pending_urbs = {}
-    
+
 
     def read_data(self, length):
         """ Attempts to read packet data from the relevant device. """
@@ -141,7 +141,7 @@ class USBMonBackend(ViewSBBackend):
         # Read the data segment that follows the event header, if one is around,
         # and add it to our event.
         data = self.read_data(event.length_captured)
-        event.apply_data(data) 
+        event.apply_data(data)
 
         # Execute the correct sub-handler for the given event.
         event_handler = event_handlers[event.event_type]
@@ -181,7 +181,7 @@ class USBMonBackend(ViewSBBackend):
 
         # 2) This is the completion of an OUT transfer. In most cases, we'll want
         #    to update the submitted transfer with our completion status.
-        elif callback.direction.is_out(): 
+        elif callback.direction.is_out():
 
             # If we have a submission to base things on, use that.
             if submission:
@@ -192,7 +192,7 @@ class USBMonBackend(ViewSBBackend):
 
                 # And submit the original URB for transfer-ization.
                 transfer = self._generate_data_transfer_for_event(submission)
-            
+
             # If we have a OUT packet with both status and data, use that.
             # This would be unusual; but it'd make sense that this could be
             # generated e.g. in response to an interrupt or isochronous endpoint.
@@ -204,7 +204,7 @@ class USBMonBackend(ViewSBBackend):
             # an orphaned fragment, here.
             else:
                 transfer = self._generate_orphaned_transfer_for_event(callback)
-                
+
 
         # 3) This is the completion of an IN transfer. This can be either a response
         #    to a submitted transfer; or it can be e.g. a packet coming in on a interrupt

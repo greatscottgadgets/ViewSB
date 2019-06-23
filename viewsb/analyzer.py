@@ -1,5 +1,5 @@
 """
-ViewSB Worker -- the primary logic for receiving USB data from a Backend (e.g. protocol analyzer hardware), running 
+ViewSB Worker -- the primary logic for receiving USB data from a Backend (e.g. protocol analyzer hardware), running
 Decoders, and outputting data to a Frontend (e.g. our main GUI).
 """
 
@@ -27,10 +27,10 @@ class ViewSBAnalyzer:
         Args:
             backend  -- A 2-tuple, containing the type of backend that should be created,
                         and a tuple of arguments to that backend.
-            frontend -- A 2-tuple, containing the type of frontend that will receive analyzed data, 
+            frontend -- A 2-tuple, containing the type of frontend that will receive analyzed data,
                         and a tuple of arguments to that frontend.
             decoders -- A list of decoder classes to be applied. If not provided, all known decoders will be attempted;
-                        ViewSB decoders are intended to produce sane results with all filters enabled, so this is likely 
+                        ViewSB decoders are intended to produce sane results with all filters enabled, so this is likely
                         what you want.
         """
 
@@ -49,7 +49,7 @@ class ViewSBAnalyzer:
         # Create -- but don't start -- our backend process.
         backend_class, backend_arguments = backend
         self.backend = ViewSBBackendProcess(backend_class, *backend_arguments)
-        
+
         # Create -- but don't start -- our frontend process.
         frontend_class, frontend_arguments = frontend
         self.frontend = ViewSBFrontendProcess(frontend_class, *frontend_arguments)

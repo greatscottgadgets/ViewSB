@@ -78,7 +78,7 @@ class FileBackend(ViewSBBackend):
     READ_CHUNK_SIZE = io.DEFAULT_BUFFER_SIZE
 
     def __init__(self, target_filename):
-        
+
         # Open the relevant file for reading. 
         self.target_file = open(target_filename, 'rb', buffering=0)
 
@@ -89,15 +89,15 @@ class FileBackend(ViewSBBackend):
 
 
     def read(self, length):
-        """ 
-        Read handler that the subclass can call to perform a manual read. 
+        """
+        Read handler that the subclass can call to perform a manual read.
         Useful for grabbing data payloads following a header captured by `capture_data`.
         """
         return self.target_file.read(length)
 
 
     def run_capture(self):
-        """ 
+        """
         Primary capture function: reads a single chunk from the file, and passes
         it to `handle_data` for conversion into ViewSB packets.
         """

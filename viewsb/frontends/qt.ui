@@ -53,7 +53,7 @@
          <widget class="QTreeWidget" name="usb_tree_widget">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>3</horstretch>
+            <horstretch>2</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
@@ -64,7 +64,7 @@
            <bool>false</bool>
           </property>
           <property name="columnCount">
-           <number>3</number>
+           <number>4</number>
           </property>
           <column>
            <property name="text">
@@ -78,11 +78,23 @@
           </column>
           <column>
            <property name="text">
+            <string>status</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
             <string>data</string>
            </property>
           </column>
          </widget>
-         <widget class="QListWidget" name="usb_details_table_widget"/>
+         <widget class="QTreeWidget" name="usb_details_tree_widget">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
         </widget>
        </item>
       </layout>

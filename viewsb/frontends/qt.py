@@ -25,7 +25,7 @@ def stringify_list(l: []) -> [str]:
 
 def get_packet_string_array(viewsb_packet):
     """ Tiny helper to return and stringify the common fields used for the columns of tree items. """
-    return stringify_list([viewsb_packet.timestamp, viewsb_packet.summarize(), viewsb_packet.summarize_data()])
+    return stringify_list([viewsb_packet.timestamp, viewsb_packet.summarize(), viewsb_packet.summarize_status(), viewsb_packet.summarize_data()] + [viewsb_packet])
 
 
 def recursive_packet_walk(viewsb_packet, packet_children_list):
@@ -41,6 +41,7 @@ def recursive_packet_walk(viewsb_packet, packet_children_list):
         for sub_packet in viewsb_packet.subordinate_packets:
 
             sub_item = QtWidgets.QTreeWidgetItem(get_packet_string_array(sub_packet))
+            sub_item.setData(0, QtCore.Qt.UserRole, sub_packet)
 
             # Recursively populate `sub_item`'s children
             children = []
@@ -78,6 +79,9 @@ class QtFrontend(ViewSBFrontend, QObject):
                 self.window.usb_tree_widget: QtWidgets.QTreeWidget = self.window.usb_tree_widget
                 self.window.usb_tree_widget.sortByColumn(0)
 
+                # g = self.window.usb_details_tree_widget.geometry()
+                # self.window.usb_details_tree_widget.setGeometry(g.x(), g.y(), 3 * g.width(), 3 * g.height())
+
                 self.window.showMaximized()
 
         def update(self):
@@ -113,6 +117,7 @@ class QtFrontend(ViewSBFrontend, QObject):
 
             for viewsb_packet in viewsb_packets:
                 top_level_item = QtWidgets.QTreeWidgetItem(get_packet_string_array(viewsb_packet))
+                top_level_item.setData(0, QtCore.Qt.UserRole, viewsb_packet)
 
                 list_of_children = []
                 recursive_packet_walk(viewsb_packet, list_of_children)
@@ -121,10 +126,36 @@ class QtFrontend(ViewSBFrontend, QObject):
 
                 self.window.usb_tree_widget.addTopLevelItem(top_level_item)
 
-        def tree_current_item_changed(self, current_item, previous_item):
+        def tree_current_item_changed(self, current_item: QtWidgets.QTreeWidgetItem, previous_item):
             """ Use the side panel to show a detailed view of the current item. """
+
+            # clear the details widget
+            self.window.usb_details_tree_widget.clear()
+
             # Determine how many columns we need
-            self.usb_details_tree_widget
+            # FIXME: actually do ^
+            self.window.usb_details_tree_widget.setColumnCount(2)
+
+            current_packet: ViewSBPacket = current_item.data(0, QtCore.Qt.UserRole)
+            detail_fields = current_packet.get_detail_fields()
+            print(detail_fields)
+
+            # detail_fields is an array of a single tuple item where the first tuple item is the header for those
+            # fields, and the next is a dict of labels to values
+
+            # Tuple to list
+            arr = list(detail_fields[0])
+            root_item = QtWidgets.QTreeWidgetItem([arr[0]])
+            fields: dict = arr[1]
+            for key, value in fields.items():
+                child = QtWidgets.QTreeWidgetItem(stringify_list([key, value]))
+                root_item.addChild(child)
+
+
+            self.window.usb_details_tree_widget.addTopLevelItem(root_item)
+            self.window.usb_details_tree_widget.expandAll()
+            self.window.usb_details_tree_widget.resizeColumnToContents(0)
+            self.window.usb_details_tree_widget.resizeColumnToContents(1)
 
         def run(self):
             """ Overrides `ViewSBFrontend.run()` """

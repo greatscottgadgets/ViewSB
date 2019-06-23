@@ -1,5 +1,5 @@
 """
-USB packet capture (pcap) file backend
+USB packet capture file backend
 """
 
 import errno

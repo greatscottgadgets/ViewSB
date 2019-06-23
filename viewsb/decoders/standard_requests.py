@@ -97,6 +97,43 @@ class StandardRequestDecoder(ViewSBDecoder):
             raise UnhandledPacket()
 
 
+class GetStatus(StandardControlRequest):
+    REQUEST_NUMBER = 0
+    REQUEST_NAME = "GET STATUS"
+
+    FIELDS = {}
+
+    def validate(self):
+        self.new_address = self.value
+
+    def summarize(self):
+        return "requesting {} status".format(self.recipient.name.tolower())
+
+
+class SetAddressRequest(StandardControlRequest):
+    REQUEST_NUMBER = 5
+    REQUEST_NAME = "SET ADDESS"
+    FIELDS = { "new_addess" }
+
+    def validate(self):
+        self.new_address = self.value
+
+    def summarize(self):
+        return "requesting device use address {}".format(self.new_address)
+
+
+class SetConfigurationRequest(StandardControlRequest):
+    REQUEST_NUMBER = 9
+    REQUEST_NAME = "SET ADDESS"
+    FIELDS = { "configuration_number" }
+
+    def validate(self):
+        self.configuration_number = self.value
+
+    def summarize(self):
+        return "requesting device switch to configuration {}".format(self.configuration_number)
+
+
 
 class GetDescriptorRequest(StandardControlRequest, DescriptorTransfer):
     """ A request to read a standard descriptor. """
@@ -104,39 +141,26 @@ class GetDescriptorRequest(StandardControlRequest, DescriptorTransfer):
     REQUEST_NUMBER = 6
     REQUEST_NAME = "GET DESCRIPTOR"
 
-    DESCRIPTOR_NAME = None
-
-    FIELDS = { "descriptor_type", "descriptor_index" }
+    FIELDS = { "descriptor_number", "descriptor_index" }
 
     def validate(self):
 
         # Split the value field into a type and index.
-        self.descriptor_type  = self.value >> 8
+        self.descriptor_number  = self.value >> 8
         self.descriptor_index = self.value & 0xFF
 
 
-    # XXX: this shouldn't be printing this >.>
-    def __repr__(self):
-        import io
-        import tableprint
-
-        formatted = io.StringIO()
-
-        formatted.write(super().__repr__() + "\n")
-
-        if self.BINARY_FORMAT:
-            to_print = self.get_decoded_descriptor()
-            tableprint.table(list(to_print.items()), out=formatted, width=22)
-
-        return formatted.getvalue()
+    def get_descriptor_name(self):
+        """ 
+        Returns the descriptor name; or a short-stand-in-summary when the name is
+        unavailable or misleading (e.g. for a 'get string descriptor, index 0').
+        """
+        if self.DESCRIPTOR_NAME:
+            return "{} descriptor".format(self.DESCRIPTOR_NAME)
+        else:
+            return  "descriptor number {}".format(self.descriptor_number)
 
 
     def summarize(self):
-
-        if self.DESCRIPTOR_NAME:
-            descriptor_text = "{} descriptor".format(self.DESCRIPTOR_NAME)
-        else:
-            descriptor_text = "descriptor number {}".format(self.descriptor_type)
-
-        return "requesting {} bytes of {}, index {}".format(
-            self.request_length, descriptor_text, self.descriptor_index)
+        return "requesting {} bytes of {} #{}".format(
+            self.request_length, self.get_descriptor_name(), self.descriptor_index)

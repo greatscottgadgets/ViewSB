@@ -63,6 +63,9 @@ class DescriptorNumber(construct.Const):
         # And pass this to the core constant class.
         super().__init__(const)
 
+        # Finally, add a documentation string for the type.
+        self.docs = "Descriptor Type"
+
 
     def _parse(self, stream, context, path):
         const_bytes = super()._parse(stream, context, path)
@@ -72,6 +75,7 @@ class DescriptorNumber(construct.Const):
     def get_descriptor_number(self):
         """ Returns this constant's associated descriptor number."""
         return self.number
+
 
 
 class DescriptorField(construct.Subconstruct):
@@ -87,12 +91,12 @@ class DescriptorField(construct.Subconstruct):
     # FIXME: these are really primitive views of these types;
     # we should extend these to get implicit parsing wherever possible
     USB_TYPES = {
-        'b'   : construct.Int8ul,
-        'bcd' : construct.Int16ul,  # Create a BCD parser for this
-        'i'   : construct.Int8ul,
-        'id'  : construct.Int16ul,
-        'bm'  : construct.Int8ul,
-        'w'   : construct.Int16ul,
+        'b'   : construct.Optional(construct.Int8ul),
+        'bcd' : construct.Optional(construct.Int16ul),  # Create a BCD parser for this
+        'i'   : construct.Optional(construct.Int8ul),
+        'id'  : construct.Optional(construct.Int16ul),
+        'bm'  : construct.Optional(construct.Int8ul),
+        'w'   : construct.Optional(construct.Int16ul),
     }
 
     @staticmethod
@@ -103,6 +107,11 @@ class DescriptorField(construct.Subconstruct):
         # Silly loop that continues until we find an uppercase letter.
         # You'd be aghast at how the 'pythonic' answers look.
         for c in name:
+
+            # Ignore leading underscores.
+            if c == '_':
+                continue
+
             if c.isupper():
                 break
             prefix.append(c)
@@ -140,7 +149,11 @@ class DescriptorTransfer(ViewSBPacket):
     # The format is defined by setting BINARY_FORMAT = DescriptorFormat(...). 
     # The DescriptorFormat initializer takes the same arguments as construct.Struct;
     # it's intended to be a thin wrapper around those objects.
-    BINARY_FORMAT = None
+    BINARY_FORMAT = DescriptorFormat(
+            "bLength"             / DescriptorField("Length"),
+            "bDescriptorType"     / DescriptorField("Descriptor Number")
+    )
+    DESCRIPTOR_NAME = None
 
     @classmethod
     def get_descriptor_number(cls):
@@ -154,7 +167,7 @@ class DescriptorTransfer(ViewSBPacket):
 
 
     @classmethod
-    def get_specialized_transfer(cls, transfer, descriptor_number=None):
+    def get_descriptor_class_for_descriptor_number(cls, descriptor_number):
 
         # Search each of the subclasses of the current class until we
         # find a class that matches the given descriptor.
@@ -162,6 +175,19 @@ class DescriptorTransfer(ViewSBPacket):
         # TODO: possibly just try parsing everything and catch the exceptions
         # when the consts don't match?
         #
+
+        # ... and look up the descriptor with the given number.
+        for subclass in cls.__subclasses__():
+            if subclass.get_descriptor_number() == descriptor_number:
+
+                # Invoke the transfer "copy constructor".
+                return subclass
+
+        return None
+
+
+    @classmethod
+    def get_specialized_transfer(cls, transfer, descriptor_number=None):
 
         # If we're not provided with a descriptor number, try to pull one
         # out of the relevant packet.
@@ -172,35 +198,108 @@ class DescriptorTransfer(ViewSBPacket):
             except IndexError:
                 return None
 
-
-        # ... and look up the descriptor with the given number.
-        for subclass in cls.__subclasses__():
-            if subclass.get_descriptor_number() == descriptor_number:
-
-                # Invoke the transfer "copy constructor".
-                return subclass(**transfer.__dict__)
-
-        return None
+        # Fetch the descriptor class for the given number, and try to instantiate it.
+        subclass = cls.get_descriptor_class_for_descriptor_number(descriptor_number)
+        if subclass:
+            return subclass(**transfer.__dict__)
+        else:
+            return None
 
 
-    def get_decoded_descriptor(self):
+    @classmethod
+    def decode_data_as_descriptor(cls, data, use_pretty_names=True):
+        """ 
+        Decodes the given data as this descriptor; and returns a dictionary of fields,
+        and the total number of bytes parsed.
+        """
+
+        if not data:
+            return None, 0
+
+        # FIXME: do we want to do this?
+        descriptor_length = data[0]
+
+        if len(data) < descriptor_length:
+            descriptor_length = len(data)
 
         # Parse the descriptor packet's data using its binary format.
         # This gives us an object that has a description of the decoded descriptor data.
         # Say that five times fast.
-        parsed_data = self.BINARY_FORMAT.parse(self.get_raw_data())
+
+        # FIXME: memoize this!
+        parsed_data = cls.BINARY_FORMAT.parse(data)
+
+        # If we don't want to prepare the descriptor for display, return it directly.
+        if not use_pretty_names:
+            return parsed_data, descriptor_length
+
+        if hasattr(parsed_data, 'bDescriptorType') and cls.DESCRIPTOR_NAME:
+            parsed_data.bDescriptorType = "{}".format(cls.DESCRIPTOR_NAME)
 
         # Convert that to a dictionary that represents a table.
-        return parsed_data._to_detail_dictionary()
+        return parsed_data._to_detail_dictionary(), descriptor_length
+
+
+    def get_decoded_descriptor(self, data=None, use_pretty_names=True):
+        """ Parses this packet into descriptor information. """
+
+        if data is None:
+            data = self.get_raw_data()
+
+        return self.decode_data_as_descriptor(data, use_pretty_names)
+
+
+    def handle_data_remaining_after_decode(self, data):
+        """ Called if data is remaining after our decode. If data remains after this call, this
+        method will be called again, until there's no data or we return None for the 
+        extracted table-or-string.
+
+        Args:
+            data -- The data left-over after a parse operation completes when
+                    fetching detail fields.
+
+        Returns:
+            (description, table_or_string, bytes_parsed) -- A 3-tuple including
+            a description of the structure parsed, the resultant decoder table
+            and the number of bytes parsed.
+        """
+        return (None, None, 0)
 
 
     def get_detail_fields(self):
+        """ Gets all of the detail fields for a given descriptor. """
 
-        if self.BINARY_FORMAT:
-            detail_dictionary = self.get_decoded_descriptor()
-            return [("{} descriptor".format(self.DESCRIPTOR_NAME), detail_dictionary)]
-        else:
-            super().get_detail_fields()
+        if not self.BINARY_FORMAT:
+            return super().get_detail_fields()
+
+        data = self.get_raw_data()
+
+        if not data:
+            return None
+
+        # Read the expected length out of the descriptor before we do any parsing.
+        expected_length = data[0]
+
+        # Start off with a table list containing the decoded parent descriptor.
+        table_or_string, bytes_parsed = self.get_decoded_descriptor(data)
+        incomplete = "incomplete " if (expected_length > bytes_parsed) else ""
+        table_list = [("{}{} descriptor".format(incomplete, self.DESCRIPTOR_NAME), table_or_string)]
+
+        # While we are still getting descriptors, try to handle any left-over data.
+        while table_or_string:
+
+            # Clip off any data parsed.
+            data = data[bytes_parsed:]
+
+            # Call our "data remaining" callback.
+            description, table_or_string, bytes_parsed = self.handle_data_remaining_after_decode(data)
+
+            #If we were able to parse more from the remaining data, return it.
+            if table_or_string:
+                table_list.append((description, table_or_string))
+
+
+        return table_list
 
 
 

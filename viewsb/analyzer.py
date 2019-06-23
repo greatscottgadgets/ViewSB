@@ -12,6 +12,7 @@ from .backend import ViewSBBackendProcess
 from .frontend import ViewSBFrontendProcess
 
 
+
 class ViewSBAnalyzer:
     """
     Primary processing "orchestrator" for ViewSB. Handles the actual logic of capturing data from the various backends,
@@ -118,21 +119,57 @@ class ViewSBAnalyzer:
             pass
 
 
+    def packets_may_arrive(self):
+        """ Returns true iff the backend is alive enough to send us packets. """
+        return True
+
+
+    def run_analysis_iteration(self):
+        """ 
+        Runs a single iteration of our analysis process.
+        This queries the backend for packets -once-, and then analyzes them.
+        """
+        self.process_analysis_queue()
+        self.fetch_backend_packets()
+
+
+    def should_halt(self):
+        """ Returns true if the analyzer process should halt. """
+
+        # If the frontend has died, we should terminate.
+        if not self.frontend.is_alive():
+            return True
+
+        # TODO: check termination conditions?
+
+        return False
+
+
     def run(self):
         """ Run this core analysis thread until the frontend requests we stop. Performs the USB analysis itself. """
 
+        # Pass the frontend stdin; this allows console-interactive analyzer to work.
+        # We implicitly give up stdin by calling this.
+        self.frontend.pass_stdin()
+
+        # Start our core bg/fg threads.
         self.backend.start()
         self.frontend.start()
 
-        # FIXME: this should ask the FrontendProcess object whether it should halt.
-        try:
-            while True:
-                self.process_analysis_queue()
-                self.fetch_backend_packets()
+        # Run our analysis main-loop until we should quit.
+        while not self.should_halt():
 
-        # For now, always break on a keyboard interrupt.
-        except KeyboardInterrupt:
-            pass
+            # TODO: handle event-packet exchange with the UI
+            # this should be coming Soon (TM)
+
+            # If we're in a state where packets may arrive, try to receive them.
+            if self.packets_may_arrive():
+                self.run_analysis_iteration()
+
+            # Otherwise, block the process a bit to give the CPU some time off.
+            else:
+                time.sleep(self.PACKET_READ_TIMEOUT)
+
 
         # FIXME: signal to the frontend to stop (if it didn't signal us to stop?)
         self.backend.stop()

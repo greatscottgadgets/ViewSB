@@ -199,7 +199,11 @@ class ViewSBPacket:
 
     def get_raw_data(self):
         """ Returns a byte-string of raw data, suitable for displaying in a hex inspection field. """
-        return bytes(self.data)
+
+        if self.data:
+            return bytes(self.data)
+        else:
+            return b''
 
 
     @staticmethod

@@ -5,6 +5,7 @@ ViewSB backend class definitions -- defines the abstract base for things that ca
 import io
 
 from .ipc import ProcessManager
+from .frontend import ViewSBEnumerableFromUI
 
 
 class ViewSBBackendProcess(ProcessManager):
@@ -13,13 +14,13 @@ class ViewSBBackendProcess(ProcessManager):
 
 
 
-class ViewSBBackend:
+class ViewSBBackend(ViewSBEnumerableFromUI):
     """ Generic parent class for sources that capture USB data. """
 
 
     def __init__(self):
         """
-        Function that initializes the relevant backend. In most cases, this objects won't be instantiated
+        Method that initializes the relevant backend. In most cases, this objects won't be instantiated
         directly -- but instead instantiated by the `run_asynchronously` / 'run_backend_asynchronously` helpers.
         """
         pass
@@ -27,8 +28,8 @@ class ViewSBBackend:
 
     def set_up_ipc(self, output_queue, termination_event, stdin=None):
         """
-        Function that accepts the synchronization objects we'll use for output. Must be called prior to
-        calling run().
+        Method that accepts the synchronization objects we'll use for output. Must be called prior to
+        calling run(). Usually called by the BackendProcess setup functions.
 
         Args:
             output_queue -- The Queue object that will be fed any USB data generated.
@@ -70,6 +71,7 @@ class ViewSBBackend:
 class FileBackend(ViewSBBackend):
     """ Generic class for mass parsing packets from files. """
 
+
     # Provided for the default implementation of run_capture.
     # Specifies the amount of data that should be read from the file at once.
     # If none, we'll try to read all of the data available at once. :)
@@ -77,10 +79,13 @@ class FileBackend(ViewSBBackend):
     # Not (directly) used if `next_read_size()` is overridden.
     READ_CHUNK_SIZE = io.DEFAULT_BUFFER_SIZE
 
-    def __init__(self, target_filename):
+    def __init__(self, target_file):
 
-        # Open the relevant file for reading. 
-        self.target_file = open(target_filename, 'rb', buffering=0)
+        # Open the relevant file for reading.
+        if isinstance(target_file, io.IOBase):
+            self.target_file = target_file
+        else:
+            self.target_file = open(target_file, 'rb', buffering=0)
 
 
     def next_read_size(self):

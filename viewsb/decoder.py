@@ -2,15 +2,17 @@
 Core decoder definitions for ViewSB.
 """
 
+from .frontend import ViewSBEnumerableFromUI
+
 class UnhandledPacket(IOError):
-    """ 
+    """
     Exception that can be emitted by decoders in `consume_packet` to "change their mind"
     about consuming a packet. This cancel the pending consumption.
     """
     pass
 
 
-class ViewSBDecoder:
+class ViewSBDecoder(ViewSBEnumerableFromUI):
     """ Base class for ViewSB decoders, which can consume and emit ViewSBPackets.
 
     Typically, decoders operate by consuming one or more ViewSBPacket objects, and
@@ -52,7 +54,7 @@ class ViewSBDecoder:
     def can_handle_packet(self, packet):
         return False
 
-    
+
     def handle_packet(self, packet):
         """ Packet handler -- called as we work through the analysis queue.
 
@@ -67,7 +69,7 @@ class ViewSBDecoder:
         # Default implementation: use can_handle_packet to determine if we
         # handle the given type of packet; and call `.consume_packet` to
         # consume the given packet.
-        
+
         if self.can_handle_packet(packet):
             try:
                 self.consume_packet(packet)
@@ -79,7 +81,7 @@ class ViewSBDecoder:
 
 
     def consume_packet(self, packet):
-        """ 
+        """
         Packet handler -- called for packets we're in the process of consuming.
         Used by the default implementation of handle_packet.
         """

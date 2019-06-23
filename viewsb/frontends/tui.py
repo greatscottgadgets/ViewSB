@@ -13,13 +13,15 @@ from ..frontend import ViewSBFrontend
 class TUIFrontend(ViewSBFrontend):
     """ Text-based packet viewer for ViewSB. """
 
+    UI_NAME = 'tui'
+    UI_DESCRIPTION = 'interactive text-based UI'
 
     # Colorization options for each of the relevant widgets.
     # These are the simple ANSI options.
     COLOR_PALETTE = [
         ('body', 'white', 'black'),
         ('focus', 'light gray', 'dark blue', 'standout'),
-        ('head', 'yellow', 'black', 'standout'),
+        ('head', 'white', 'black', 'bold'),
         ('foot', 'light gray', 'black'),
         ('key', 'light cyan', 'black','underline'),
         ('title', 'white', 'black', 'bold'),
@@ -33,8 +35,22 @@ class TUIFrontend(ViewSBFrontend):
         ('okay_focus', 'dark gray', 'dark blue'),
         ('error', 'light red', ''),
         ('error_focus', 'light red', 'dark blue'),
+
+
+        ('icon',       'dark gray', ''),
+        ('icon_focus', 'dark gray',  'dark blue'),
+
     ]
 
+    # Mapping that maps normal/unfocused class names to their focused equivalents.
+    FOCUSED_COLOR_MAPPINGS = {
+        'padding': 'focus',
+        'data':    'focus',
+        'summary': 'focus',
+        'okay':    'okay_focus',
+        'error':   'error_focus',
+        'icon':    'icon_focus',
+    }
 
     # Initial footer text.
     DEFAULT_FOOTER_TEXT = [
@@ -67,7 +83,7 @@ class TUIFrontend(ViewSBFrontend):
         # For now: create a really inefficient in-memory packet store,
         # and anchor our tree-view to that.
         self.packet_store = TUIPacketCollection(self)
-        self.root_node    = VSBPacketNode(self.packet_store, self)
+        self.root_node    = VSBRootNode(self.packet_store, self)
 
         # Generate the TreeList that's we'll use the display our packets.
         # This is the main viewport into the USB data.
@@ -85,7 +101,7 @@ class TUIFrontend(ViewSBFrontend):
         self.columns = urwid.Columns([('weight', 2, self.packet_list), decoder_rows_list], dividechars=1)
         self.footer  = urwid.Text(self.DEFAULT_FOOTER_TEXT)
         self.view    = urwid.Frame(
-            body=urwid.AttrWrap(self.columns, 'body'),
+            body=urwid.AttrWrap(self.columns,  'body'),
             header=urwid.AttrWrap(self.header, 'head'),
             footer=urwid.AttrWrap(self.footer, 'foot'),
         )
@@ -127,7 +143,7 @@ class TUIFrontend(ViewSBFrontend):
                 self.add_string_to_decoder_view(
                     "decoder error: unknown how to render type {}".format(type(contents).__name__),
                     style='error')
-            
+
             # Render a spacer after each table.
             self.decoder_rows.append(urwid.Text(('spacer', '')))
 
@@ -153,7 +169,7 @@ class TUIFrontend(ViewSBFrontend):
 
 
     def format_string_for_view(self, string, style='', padding=1):
-        """ 
+        """
         Wraps a given string in a stack of UI elements; preparing it to be added to
         a display table.
         """
@@ -202,7 +218,7 @@ class TUIFrontend(ViewSBFrontend):
     def unhandled_input(self, k):
         """ Handle any input that's not handled by e.g. the focused widget. """
 
-        if k in 'qQ':
+        if k in ('q', 'Q'):
             raise urwid.ExitMainLoop()
 
 
@@ -231,7 +247,7 @@ class PacketListBox(urwid.TreeListBox):
 
         # Start off with no previously-focused element.
         self.last_focus = False
-        
+
         # Register our focus-changed callback.
         self.focus_changed_callback = focus_changed_callback
 
@@ -240,7 +256,7 @@ class PacketListBox(urwid.TreeListBox):
 
     def focus_changed(self):
         """ Called when the focus may have changed; handles focus-change event generation. """
- 
+
         #if self.focus is self.last_focus:
         #    return
 
@@ -251,7 +267,7 @@ class PacketListBox(urwid.TreeListBox):
         # If we have a "focus changed" callback, call it.
         if callable(self.focus_changed_callback):
             self.focus_changed_callback(focused_node, focused_node.get_value())
-        
+
         # If we had a previously focused node, let it know it's no longer focused.
         if self.last_focus:
             self.last_focus.rerender_with_focus(False)
@@ -287,7 +303,6 @@ class PacketListBox(urwid.TreeListBox):
         return result
 
 
-
     def get_focused_packet(self):
         """ Returns the packet for the element currently in focus. """
 
@@ -296,9 +311,8 @@ class PacketListBox(urwid.TreeListBox):
 
 
 
-
 class VSBPacketNode(urwid.ParentNode):
-    """ Data storage object for interior/parent nodes """
+    """ Data storage object for interior/parent nodes. """
 
 
     def __init__(self, packet_store, frontend, *args, **kwargs):
@@ -307,11 +321,13 @@ class VSBPacketNode(urwid.ParentNode):
 
 
     def _invalidate(self):
-        #self.get_widget(reload=True)
+        """ Mark the current node as requiring a re-render. """
         self.frontend.dynamic_view._modified()
 
 
     def rerender_with_focus(self, focus):
+        """ Re-render the given node with or without focus."""
+
         if focus:
             self._widget = self._highlighted_widget
         else:
@@ -323,6 +339,7 @@ class VSBPacketNode(urwid.ParentNode):
             return len(self._child_keys)
         else:
             return 0
+
 
     def add_packet(self, packet):
         if self._child_keys:
@@ -336,9 +353,12 @@ class VSBPacketNode(urwid.ParentNode):
 
     def load_widget(self):
         """ Returns the widget used to render the current icon. """
+
         self._unhighlighted_widget = VSBPacketWidget(self, self.get_value(), self.frontend)
-        self._highlighted_widget   = urwid.AttrWrap(urwid.AttrWrap(self._unhighlighted_widget, 'focus'), 
-                {'padding': 'focus', 'data': 'focus', 'summary': 'focus', 'okay': 'okay_focus', 'error': 'error_focus'} )
+        self._highlighted_widget   = urwid.AttrWrap(
+                urwid.AttrWrap(self._unhighlighted_widget, 'focus'),
+                TUIFrontend.FOCUSED_COLOR_MAPPINGS
+            )
         return self._unhighlighted_widget
 
 
@@ -372,29 +392,86 @@ class VSBPacketNode(urwid.ParentNode):
 class VSBPacketWidget(urwid.TreeWidget):
     """ Widget that renders tree elements as text. """
 
+    # If we're in utf8 mode,use fancier widgets than we would in ASCII mode.
+    if urwid.get_encoding_mode() == "utf8":
+        ICONS = {
+            'unexpanded': urwid.SelectableIcon('⊞', 0),
+            'expanded':   urwid.SelectableIcon('⊟', 0),
+            'leaf':       urwid.Text('•'),
+            'in':         urwid.SelectableIcon('⇐', 0),
+            'out':        urwid.SelectableIcon('⇒', 0)
+        }
+    else:
+        ICONS = {
+            'unexpanded': urwid.SelectableIcon('+', 0),
+            'expanded':   urwid.SelectableIcon('-', 0),
+            'leaf':       urwid.Text('*'),
+            'in':         urwid.SelectableIcon('<', 0),
+            'out':        urwid.SelectableIcon('>', 0)
+        }
+
+
     def __init__(self, parent, packet, frontend, focused=False):
 
         self.packet = packet
         self.frontend = frontend
-        self.is_root = parent.is_root()
+        self.is_root = False
         self.focused = focused
 
         super().__init__(parent)
 
-        has_children = len(packet.subordinate_packets) > 0
+        self.expanded = False
+        self.is_leaf = not packet.subordinate_packets
+        self._wrapped_widget = self.get_indented_widget()
 
-        self.expanded = self.is_root
-        self.is_leaf = not (has_children or self.is_root)
+
+    def get_icon(self):
+        """ Retrieve the icon to display whether the node can be expanded or collapsed. """
+
+        # If we have a leaf, render it's single state icon.
+        if self.is_leaf:
+            icon = self.ICONS['leaf']
+        # If we have a parent, return the icon corresponding to its expanded state.
+        else:
+            icon = self.ICONS['expanded'] if self.expanded else self.ICONS['unexpanded']
+
+        return urwid.AttrWrap(icon, 'icon')
+
+
+    def update_expanded_icon(self):
+        self._w.base_widget.widget_list[0] = self.get_icon()
+
+
+    def get_indented_widget(self):
+        widget = self.get_inner_widget()
+
+        icon   = ('fixed', 1, self.get_icon())
+        widget = urwid.Columns([icon, widget], dividechars=1)
+
+        indent_cols = self.get_indent_cols()
+        return urwid.Padding(widget, width=('relative', 100), left=indent_cols + 1)
+
+
+    def prev_inorder(self):
+
+        # Use the normal algorithm to identify our predecessor...
+        prev = super().prev_inorder()
+
+        # .. but if the previous would be our root widget, return none.
+        # This ensures we never select the invisible root widget.
+        if isinstance(prev, VSBRootNode.NonDisplayingWidget):
+            return None
+        else:
+            return prev
 
 
     def get_display_text(self):
         packet = self.packet
         text = [('summary', packet.summarize())]
 
-
         try:
             status_summary = packet.summarize_status()
-            
+
             # XXX temporary horrorhack -- use .style instead
             style = 'error' if ('STALL' in status_summary) else 'okay'
 
@@ -409,8 +486,8 @@ class VSBPacketWidget(urwid.TreeWidget):
             data = ('data', " [{}]".format(packet.summarize_data()))
             text.append(data)
 
-
         return text
+
 
     def selectable(self):
         # Always allow our packets to be selectable, so the user can
@@ -418,9 +495,60 @@ class VSBPacketWidget(urwid.TreeWidget):
         return True
 
 
+    def get_indent_cols(self):
+        return self.indent_cols * (self.get_node().get_depth() - 1)
+
+
+class VSBRootNode(VSBPacketNode):
+    """
+    Special case of VSBPacketNode that renders the invisible root node --
+    the utility node that contains all other nodes.
+    """
+
+    class NonDisplayingWidget(VSBPacketWidget):
+        """ Special class for the non-displaying root node. """
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, *kwargs)
+            self.is_leaf = False
+            self.expanded = True
+
+
+        def rows(*args, **kwargs):
+            # Return a widget that takes zero rows; and thus will be skipped during
+            # listbox render.
+            return 0
+
+
+        def render(self, size, focus=False ):
+            return urwid.SolidCanvas(" ", *size, 0)
+
+
+        def selectable(self):
+            return False
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.expanded = True
+        self._widget = self.NonDisplayingWidget(self, self.get_value(), self.frontend)
+
+    def is_root(self):
+        return True
+
+    def rerender_with_focus(self, focus):
+        return
+
+    def get_widget(self):
+        return self._widget
+
+
+
+
+
 
 class TUIPacketCollection:
-    """ Simple collection of displayed packets for TUI. """
+    """ Simple collection of displayed packets for ourTUI. """
 
     def __init__(self, frontend):
 
@@ -437,8 +565,10 @@ class TUIPacketCollection:
         """ Accepts a new subordinate packet into the collection. """
         self.subordinate_packets.append(packet)
 
+
     def summarize(self):
         return "New Capture ({}):".format(len(self.subordinate_packets))
+
 
     def get_detail_fields(self):
         return []

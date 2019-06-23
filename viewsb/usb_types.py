@@ -34,6 +34,15 @@ class USBDirection(IntEnum):
         return self.OUT if (self is self.IN) else self.IN
 
 
+    @classmethod
+    def to_endpoint_address(cls, endpoint_number):
+        """ Helper method that converts and endpoint_number to an address, given direction. """
+        if self.is_in():
+            return endpoint_number | (1 << 7)
+        else:
+            return endpoint_number
+
+
 class USBPIDCategory(IntFlag):
     """ Category constants for each of the groups that PIDs can fall under. """
 
@@ -98,11 +107,11 @@ class USBPacketID(IntFlag):
         pid          = cls(value & PID_MASK)
         inverted_pid = value >> INVERTED_PID_SHIFT
 
-        # If we're not skipping checks, 
+        # If we're not skipping checks,
         if not skip_checks:
             if (pid ^ inverted_pid) != PID_MASK:
                 pid |= cls.PID_INVALID
-        
+
         return cls(pid)
 
 
@@ -191,7 +200,7 @@ class USBRequestRecipient(IntEnum):
 
     RESERVED  = 4
 
-    @classmethod 
+    @classmethod
     def from_integer(cls, value):
         """ Special factory that correctly handles reserved values. """
 
@@ -238,7 +247,7 @@ class USBTransferType(IntEnum):
 
 
 def endpoint_number_from_address(number):
-    return number & 0x7F 
+    return number & 0x7F
 
 
 LANGUAGE_NAMES = {

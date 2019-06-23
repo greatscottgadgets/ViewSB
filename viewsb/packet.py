@@ -222,7 +222,7 @@ class ViewSBPacket:
             data_summary = ""
 
         # Quick stab at some nice formatting for console output.
-        description =  "<{}: d{}:e{:02x} {}{} {}>".format(
+        description =  "<{}: d{}:e{} {}{} {}>".format(
             type(self).__name__, self.device_address, self.endpoint_number,
             self.summarize(), data_summary, self.summarize_status())
 
@@ -261,7 +261,7 @@ class USBPacket(ViewSBPacket):
 
         # Create a copy of the raw packet so we can work with it.
         data = raw_packet[:]
-       
+
         # Extract the PID from the first byte of the packet.
         packet_id = USBPacketID.parse(data.pop(0))
 
@@ -326,7 +326,7 @@ class USBHandshakePacket(USBPacket):
 
 
 class USBStatusTransfer(USBHandshakePacket):
-    """ 
+    """
     USB status transfers are very similar to handshakes -- they're just
     one level up the abstraction ladder. Re-use that code.
     """
@@ -343,7 +343,7 @@ class MalformedPacket(USBPacket):
             self.status = 0
 
         # Malformed packets are always a protocol error.
-        self.status |= ViewSBStatus.ERROR
+        #self.status |= ViewSBStatus.ERROR
 
     def generate_summary(self):
        if self.pid:
@@ -353,9 +353,9 @@ class MalformedPacket(USBPacket):
 
 
 class USBTransaction(ViewSBPacket):
-    """ 
-    Class describing a raw USB transaction, which is a representation of a TOKEN, 
-    optional DATA, and HANDSHAKE packet. 
+    """
+    Class describing a raw USB transaction, which is a representation of a TOKEN,
+    optional DATA, and HANDSHAKE packet.
     """
 
     FIELDS = {'token', 'handshake', 'data_pid'}
@@ -426,7 +426,7 @@ class USBDataTransfer(USBTransaction, USBTransfer):
 
 
 class USBTransferFragment(USBTransfer):
-    """ 
+    """
     Class representing a piece of USB data that was the result of an incomplete capture,
     or data error.
     """
@@ -438,19 +438,19 @@ class USBTransferFragment(USBTransfer):
 
 
 class USBBulkTransfer(USBDataTransfer):
-    
+
     def summarize(self):
         return "bulk {} transfer ({})".format(self.direction.name, len(self.data))
 
 
 class USBInterruptTransfer(USBDataTransfer):
-    
+
     def summarize(self):
         return "interrupt {} transfer ({})".format(self.direction.name, len(self.data))
 
 
 class USBIsochronousTransfer(USBDataTransfer):
-    
+
     def summarize(self):
         return "isochronous {} transfer ({})".format(self.direction.name, len(self.data))
 
@@ -501,10 +501,10 @@ class USBSetupTransaction(USBTransaction):
 
 
 class USBSetupTransfer(USBSetupTransaction):
-    """ Synonym for a USBSetupTransaction, as those contain only one real transaction. 
-    
+    """ Synonym for a USBSetupTransaction, as those contain only one real transaction.
+
     Technically, we can contain subordinate USBSetupTransactions that have transmission
-    errors; so this is slightly semantically different in what you'd expect in 
+    errors; so this is slightly semantically different in what you'd expect in
     subordinate_packets.
     """
     pass

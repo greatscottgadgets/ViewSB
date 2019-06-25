@@ -13,7 +13,7 @@ from ..descriptor import DescriptorFormat, DescriptorField, DescriptorNumber
 
 
 class DescriptorRequestDecoder(ViewSBDecoder):
-    """ Protocol decoder for Stanard-type USB control requests. """
+    """ Protocol decoder for Standard-type USB control requests. """
 
 
     def can_handle_packet(self, packet):
@@ -213,7 +213,7 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
 
         strings = []
 
-        # Convert each supported langauge into a list of description rows.
+        # Convert each supported language into a list of description rows.
         language_pairs = self.get_supported_language_info(data)
         for langid, name in language_pairs:
             if name is not None:
@@ -260,7 +260,7 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
 
     def get_descriptor_name(self):
 
-        # If this a real string desriptor request, render it accordingly
+        # If this a real string descriptor request, render it accordingly
         if self.index:
             return super().get_descriptor_name()
 
@@ -310,6 +310,6 @@ class GetDeviceQualifierDescriptorRequest(GetDescriptorRequest):
             "bDeviceProtocol"     / DescriptorField("Protocol"),
             "bMaxPacketSize0"     / DescriptorField("EP0 Max Pkt Size"),
             "bNumConfigurations"  / DescriptorField("Configuration Count"),
-            "_bReserevd"          / construct.Optional(construct.Const(b"\0"))
+            "_bReserved"          / construct.Optional(construct.Const(b"\0"))
     )
 

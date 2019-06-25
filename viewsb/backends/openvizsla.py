@@ -45,7 +45,7 @@ class ViewSBEventSink(USBEventSink):
     def handle_usb_packet(self, timestamp, raw_packet, flags):
         """ Called whenever the OpenVizsla device detects a new USB packet. """
 
-        # For now, ignore any populated USB packets as noise.
+        # For now, ignore any unpopulated USB packets as noise.
         if not len(raw_packet):
             return
 

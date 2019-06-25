@@ -163,7 +163,7 @@ class DescriptorTransfer(ViewSBPacket):
             if hasattr(subconstruct, 'get_descriptor_number'):
                 return subconstruct.get_descriptor_number()
 
-        raise ValueError("a descriptor format was defined with no DesriptorNumber!")
+        raise ValueError("a descriptor format was defined with no DescriptorNumber!")
 
 
     @classmethod

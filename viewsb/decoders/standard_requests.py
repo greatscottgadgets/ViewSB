@@ -58,7 +58,7 @@ class StandardControlRequest(USBControlTransfer):
             if subclass.handles_request(transfer):
                 return subclass.from_control_transfer(transfer)
 
-        # If we weren't able to handle the provied, packet, raise UnhandledPacket,
+        # If we weren't able to handle the provided packet, raise UnhandledPacket,
         # so the analyzer looks for a different decoder.
         return None
 
@@ -73,7 +73,7 @@ class StandardControlRequest(USBControlTransfer):
 
 
 class StandardRequestDecoder(ViewSBDecoder):
-    """ Protocol decoder for Stanard-type USB control requests. """
+    """ Protocol decoder for Standard-type USB control requests. """
 
     def can_handle_packet(self, packet):
 
@@ -112,8 +112,8 @@ class GetStatus(StandardControlRequest):
 
 class SetAddressRequest(StandardControlRequest):
     REQUEST_NUMBER = 5
-    REQUEST_NAME = "SET ADDESS"
-    FIELDS = { "new_addess" }
+    REQUEST_NAME = "SET ADDRESS"
+    FIELDS = { "new_address" }
 
     def validate(self):
         self.new_address = self.value
@@ -124,7 +124,7 @@ class SetAddressRequest(StandardControlRequest):
 
 class SetConfigurationRequest(StandardControlRequest):
     REQUEST_NUMBER = 9
-    REQUEST_NAME = "SET ADDESS"
+    REQUEST_NAME = "SET ADDRESS"
     FIELDS = { "configuration_number" }
 
     def validate(self):

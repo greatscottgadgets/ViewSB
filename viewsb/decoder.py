@@ -92,6 +92,6 @@ class ViewSBDecoder:
 
 
     def handle_termination(self, packet):
-        """ Called when the given decoder is terminated; allows any half-processed pcakets to be flushed """
+        """ Called when the given decoder is terminated; allows any half-processed packets to be flushed """
         pass
 

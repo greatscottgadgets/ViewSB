@@ -1,5 +1,5 @@
 """
-ViewSB backend class defintions -- defines the abstract base for things that capture USB data.
+ViewSB backend class definitions -- defines the abstract base for things that capture USB data.
 """
 
 import io

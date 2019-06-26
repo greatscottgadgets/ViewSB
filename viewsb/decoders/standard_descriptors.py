@@ -94,9 +94,8 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
                 decoded.idVendor, 
                 decoded.idProduct,
                 class_text)
-        except KeyError:
+        except (KeyError, TypeError):
             return super().summarize_data()
-
 
 
 class GetConfigurationDescriptorRequest(GetDescriptorRequest):

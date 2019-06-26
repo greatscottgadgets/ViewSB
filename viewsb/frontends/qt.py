@@ -3,19 +3,18 @@ Qt Frontend for ViewSB
 """
 
 import multiprocessing
-import threading
 
 from datetime import datetime
 
 import PySide2
 from PySide2 import QtWidgets
-from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PySide2.QtWidgets import QApplication, QWidget
 from PySide2 import QtCore
-from PySide2.QtCore import Qt, QObject, Signal, Slot
+from PySide2.QtCore import Qt, QObject
 from PySide2.QtUiTools import QUiLoader
 
 from ..frontend import ViewSBFrontend
-from ..packet import ViewSBPacket, USBPacket, USBTransaction, USBTransfer, USBControlTransfer
+from ..packet import ViewSBPacket
 
 
 def stringify_list(l: []) -> [str]:
@@ -43,11 +42,11 @@ def recursive_packet_walk(viewsb_packet, packet_children_list):
             sub_item = QtWidgets.QTreeWidgetItem(get_packet_string_array(sub_packet))
             sub_item.setData(0, QtCore.Qt.UserRole, sub_packet)
 
-            # Recursively populate `sub_item`'s children
+            # Recursively populate `sub_item`'s children.
             children = []
             recursive_packet_walk(sub_packet, children)
 
-            # Add our subordinate (and it's entire hierarchy) as a child of our parent
+            # Add our subordinate (and it's entire hierarchy) as a child of our parent.
             packet_children_list.append(sub_item)
 
 
@@ -68,7 +67,7 @@ class QtFrontend(ViewSBFrontend, QObject):
                 self.loader = QUiLoader()
                 self.window: QtWidgets.QMainWindow = self.loader.load(self.ui_file)
 
-                # The default column size of 100 is too small for the summary column
+                # The default column size of 100 is too small for the summary column.
                 self.window.usb_tree_widget.setColumnWidth(1, 400)
 
                 self.window.update_timer = QtCore.QTimer()
@@ -79,8 +78,6 @@ class QtFrontend(ViewSBFrontend, QObject):
                 self.window.usb_tree_widget: QtWidgets.QTreeWidget = self.window.usb_tree_widget
                 self.window.usb_tree_widget.sortByColumn(0)
 
-                # g = self.window.usb_details_tree_widget.geometry()
-                # self.window.usb_details_tree_widget.setGeometry(g.x(), g.y(), 3 * g.width(), 3 * g.height())
 
                 self.window.showMaximized()
 
@@ -93,26 +90,27 @@ class QtFrontend(ViewSBFrontend, QObject):
             packet_list = []
 
             try:
-                # Get as many packets as we can as quick as we can
+                # Get as many packets as we can as quick as we can.
                 while(True):
 
                     packet = self.data_queue.get_nowait()
                     packet_list.append(packet)
 
-            # But the instant it's empty, don't wait for any more; just send them to be processed
+            # But the instant it's empty, don't wait for any more; just send them to be processed.
             except multiprocessing.queues.Empty:
                 pass
+
             finally:
-                # In case the queue was empty in the first place and didn't have anything ready
+                # In case the queue was empty in the first place and didn't have anything ready.
                 if len(packet_list) > 0:
 
                     self.add_packets(packet_list)
 
 
         def add_packets(self, viewsb_packets: []):
-            """ Adds a list of top-level ViewSB packets to the tree
+            """ Adds a list of top-level ViewSB packets to the tree.
 
-                We're in the UI thread; every bit of overhead counts, so let's batch as much as possible.
+            We're in the UI thread; every bit of overhead counts, so let's batch as much as possible.
             """
 
             for viewsb_packet in viewsb_packets:

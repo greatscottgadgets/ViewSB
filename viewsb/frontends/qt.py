@@ -127,31 +127,51 @@ class QtFrontend(ViewSBFrontend, QObject):
         def tree_current_item_changed(self, current_item: QtWidgets.QTreeWidgetItem, previous_item):
             """ Use the side panel to show a detailed view of the current item. """
 
-            # clear the details widget
+            # Clear the details widget.
             self.window.usb_details_tree_widget.clear()
 
-            # Determine how many columns we need
-            # FIXME: actually do ^
             self.window.usb_details_tree_widget.setColumnCount(2)
 
             current_packet: ViewSBPacket = current_item.data(0, QtCore.Qt.UserRole)
+
+            # A list of 2-tuples: first element is a table title, and the second is usually a string: string dict
             detail_fields = current_packet.get_detail_fields()
-            print(detail_fields)
 
-            # detail_fields is an array of a single tuple item where the first tuple item is the header for those
-            # fields, and the next is a dict of labels to values
+            # Each table will have a root item in the details view.
+            root_items = []
 
-            # Tuple to list
-            arr = list(detail_fields[0])
-            root_item = QtWidgets.QTreeWidgetItem([arr[0]])
-            fields: dict = arr[1]
-            for key, value in fields.items():
-                child = QtWidgets.QTreeWidgetItem(stringify_list([key, value]))
-                root_item.addChild(child)
+            for table in detail_fields:
+                title: str = table[0]
+
+                root = QtWidgets.QTreeWidgetItem([title])
+                children = []
+
+                fields = table[1]
+
+                # The usual case: a str: str dict.
+                if type(fields) == type({}):
+                    for key, value in fields.items():
+                        children.append(QtWidgets.QTreeWidgetItem(stringify_list([key, value])))
+
+                # Sometimes a descriptor will just be a 1-column list.
+                elif type(fields) == type([]):
+                    for item in fields:
+                        children.append(QtWidgets.QTreeWidgetItem([str(item)]))
+
+                # Sometimes it'll just be a string, or, if it's an unknown descriptor, a `bytes` instance.
+                else:
+                    children.append(QtWidgets.QTreeWidgetItem([str(fields)]))
+
+                root.addChildren(children)
+
+                # Add an empty "item" between each table
+                root_items += [root, QtWidgets.QTreeWidgetItem([])]
 
 
-            self.window.usb_details_tree_widget.addTopLevelItem(root_item)
+            self.window.usb_details_tree_widget.addTopLevelItems(root_items)
+
             self.window.usb_details_tree_widget.expandAll()
+
             self.window.usb_details_tree_widget.resizeColumnToContents(0)
             self.window.usb_details_tree_widget.resizeColumnToContents(1)
 

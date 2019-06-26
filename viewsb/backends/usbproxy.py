@@ -105,7 +105,7 @@ class ViewSBProxyObserver(USBProxyFilter):
             # the data stage.
             data_stall = stalled if setup.request_direction.is_in() else False
 
-            # Update the last tranferred direction to match the direction of the data stage.
+            # Update the last transferred direction to match the direction of the data stage.
             last_direction = setup.request_direction
 
             # Generate the data transfer itself.

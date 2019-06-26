@@ -29,7 +29,6 @@ class TUIFrontend(ViewSBFrontend):
         ('data', 'light blue', ''),
         ('key', 'light blue', 'black'),
         ('key_column', 'light blue', ''),
-
         ('okay', 'dark gray', ''),
         ('okay_focus', 'dark gray', 'dark blue'),
         ('error', 'light red', ''),
@@ -213,7 +212,7 @@ class TUIFrontend(ViewSBFrontend):
         # Create the main event-loop that will run all of our stuff.
         self.loop = urwid.MainLoop(self.view, self.COLOR_PALETTE, unhandled_input=self.unhandled_input)
 
-        # Restore the terminat's input capabilities; as Python rudely closed the stdin
+        # Restore the terminal's input capabilities; as Python rudely closed the stdin
         # that we were working with. We've voluntarily closed it on all other processes,
         # so we can feel free to just take it back, here.
         self.loop.screen._term_input_file = self.stdin

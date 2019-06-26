@@ -265,7 +265,7 @@ class USBPacket(ViewSBPacket):
         # Extract the PID from the first byte of the packet.
         packet_id = USBPacketID.parse(data.pop(0))
 
-        # Store generthe remainder of the packet as the packet's data;
+        # Store the remainder of the packet as the packet's data;
         # and wrap this in our packet object.
         return cls(pid=packet_id, data=data, **fields)
 
@@ -389,7 +389,7 @@ class USBTransaction(ViewSBPacket):
 
 
 class USBTransfer(ViewSBPacket):
-    """ Class describing a generic USB transfer, which is the a collection of conceptually-grouped transfers. """
+    """ Class describing a generic USB transfer, which is a collection of conceptually-grouped transfers. """
 
     FIELDS = {'pid', 'handshake'}
 
@@ -403,7 +403,7 @@ class USBTransfer(ViewSBPacket):
 
 
 class USBDataTransaction(USBTransaction):
-    """ Class describing a data-carrying transation. """
+    """ Class describing a data-carrying transaction. """
 
     FIELDS = {'data_pid', 'handshake'}
 
@@ -413,7 +413,7 @@ class USBDataTransaction(USBTransaction):
 
 
 class USBDataTransfer(USBTransaction, USBTransfer):
-    """ Class describing a sequence of logcially grouped, data-carrying transfers. """
+    """ Class describing a sequence of logically grouped, data-carrying transfers. """
 
     FIELDS = {'pid_sequence_ok', 'handshake'}
 
@@ -434,7 +434,7 @@ class USBTransferFragment(USBTransfer):
     FIELDS = {'transfer_type'}
 
     def summarize(self):
-        return "ORPHANED {}B {}-{} tranfer".format(len(self.data), self.direction.name, self.pid.name)
+        return "ORPHANED {}B {}-{} transfer".format(len(self.data), self.direction.name, self.pid.name)
 
 
 class USBBulkTransfer(USBDataTransfer):

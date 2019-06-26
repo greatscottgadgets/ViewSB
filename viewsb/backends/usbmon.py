@@ -24,7 +24,7 @@ class TransferType(Enum):
     def associated_data_transfer_type(self):
         """ 
         Returns the USBTransfer packet type most closely associated to the _payload_
-        setion of the provided transfer.
+        section of the provided transfer.
         """
 
         packet_types = {
@@ -36,7 +36,7 @@ class TransferType(Enum):
         return packet_types[self]
 
     def to_usb_transfer_type(self):
-        """ Returns the USBTransferType that's equivlent to this USBMon transfer type. """
+        """ Returns the USBTransferType that's equivalent to this USBMon transfer type. """
         return USBTransferType[self.name]
 
 
@@ -113,7 +113,7 @@ class USBMonEvent:
 
 class USBMonBackend(ViewSBBackend):
     """ 
-    Class that handles PCap data. Should not be instantiated directly;
+    Class that handles pcap data. Should not be instantiated directly;
     rather, instantiate one of its subclasses.
     """
 
@@ -143,7 +143,7 @@ class USBMonBackend(ViewSBBackend):
         data = self.read_data(event.length_captured)
         event.apply_data(data) 
 
-        # Execute the corret sub-handler for the given event.
+        # Execute the correct sub-handler for the given event.
         event_handler = event_handlers[event.event_type]
         event_handler(event)
 
@@ -379,8 +379,8 @@ class USBMonBackend(ViewSBBackend):
 
 class USBMonFileBackend(USBMonBackend, FileBackend):
     """
-    Class that handles PCap data, read from a file; whether a special device file
-    or a pre-captured Pcap file.
+    Class that handles pcap data, read from a file; whether a special device file
+    or a pre-captured pcap file.
     """
 
     # TODO: support modes other than compatibility mode?

@@ -31,7 +31,7 @@ class ProcessManager:
 
 
     def pass_stdin(self):
-        """ Sets up pasing stdin to the relevant process; removing it from the calling one. """
+        """ Sets up passing stdin to the relevant process; removing it from the calling one. """
 
         # Create a duplicate of stdin for the remote process that will continue
         # to exist. If we don't create this copy, python's multiprocessing will
@@ -92,7 +92,7 @@ class ProcessManager:
     def _capture_stdin(self):
         """ 
         Currently, the multiprocessing module kills stdin on any newly-spawned processes; and doesn't
-        allow us to configure which of the multiple processe retains a living stdin.
+        allow us to configure which of the multiple processes retains a living stdin.
 
         To work around this, we'll break stdin away from python's control, and manually pass it to
         the subordinate processes.

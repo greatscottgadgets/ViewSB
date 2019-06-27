@@ -8,6 +8,113 @@ import queue
 
 from .ipc import ProcessManager
 
+class ViewSBEnumerableFromUI:
+    """ Mix-in for classes that are intended to have their subclasses enumerated from the UI.
+
+    Used primarily for the frontends, backends, and filters.
+    """
+
+    # Each subclass should override this class variable with their preferred name.
+    UI_NAME = None
+    UI_DESCRIPTION = None
+
+    @classmethod
+    def available_on_system(cls):
+        """ Returns true iff this class can be used on the current system.
+
+        Generally, prefer implementing reason_for_disabling, and allowing this
+        function to automatically determine using its result.
+        """
+        return (cls.reason_to_be_disabled() is None)
+
+
+    @classmethod
+    def reason_to_be_disabled(cls):
+        """
+        Returns a string describing any reasons this class would be unavailable, or None
+        if the backend is currently available.
+
+        The latter condition is mandatory for implementers; it will be used by the default
+        implementation of `available_for_capture`.
+        """
+        # Assume by default the given decoder is always enabled.
+        return None
+
+
+    @staticmethod
+    def parse_arguments(args, parent_parser=[]):
+        """ Optional method that parses command-line options with which to set up the given module.
+
+        Typically, this would be used by instantiating your own argparse instance and consuming from
+        the remaining arguments.
+
+        Returns: parsed_args, leftover_args
+            parsed_args -- a tuple of arguments that should be passed to the class constructor
+            leftover_args -- A list of any arguments left over after parsing.
+        """
+        return ((), args)
+
+
+    @classmethod
+    def get_subclass_from_name(cls, name):
+        """ Attempts to look up a subclass by its UI_NAME.
+
+        Returns a subclass if one was found; or None if nothing matched the UI_NAME.
+        """
+
+        for subclass in cls.all_named_subclasses():
+            if subclass.UI_NAME == name:
+                return subclass
+
+        return None
+
+
+
+    @classmethod
+    def all_named_subclasses(cls):
+        """ Returns the set of all subclasses of the relevant class that have a UI_NAME defined.
+
+        Args:
+            include_self -- True iff we want to consider 'self' a subclass of the current class.
+        """
+
+        subclasses = set()
+
+        # Search each of our subclasses...
+        for subclass in cls.__subclasses__():
+            # If the current class is named, add it to our list...
+            if subclass.UI_NAME:
+                subclasses.add(subclass)
+
+            # ... and explore all of its subclasses.
+            subclasses.update(subclass.all_named_subclasses())
+
+        return subclasses
+
+
+
+
+    @classmethod
+    def available_subclasses(cls):
+        """ Returns an iterator over all available backend objects. """
+        return (subclass for subclass in cls.all_named_subclasses() if subclass.available_on_system())
+
+
+    @classmethod
+    def unavailable_subclasses(cls):
+        """
+        Returns a generator of 2-tuples for each unavailable backend, in the following format:
+
+        (backend, reason), where:
+            backend -- The unavailable backend class.
+            reason -- The reason the given backend isn't available.
+        """
+        unavailable = []
+
+        return ((subclass, subclass.reason_to_be_disabled()) \
+            for subclass in cls.all_named_subclasses() if not subclass.available_on_system())
+
+
 
 class ViewSBFrontendProcess(ProcessManager):
     """ Class that controls and communicates with a ViewSB UI running in another process. """
@@ -15,8 +122,14 @@ class ViewSBFrontendProcess(ProcessManager):
 
 
 
-class ViewSBFrontend:
+
+class ViewSBFrontend(ViewSBEnumerableFromUI):
     """ Generic parent class for sources that display USB data. """
+
+    # Frontend information for any UIs that want to display it.
+    # Should be overridden by the relevant class.
+    UI_NAME        = None
+    UI_DESCRIPTION = None
 
     PACKET_READ_TIMEOUT = 0.01
 

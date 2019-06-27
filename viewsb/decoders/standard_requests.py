@@ -164,3 +164,24 @@ class GetDescriptorRequest(StandardControlRequest, DescriptorTransfer):
     def summarize(self):
         return "requesting {} bytes of {} #{}".format(
             self.request_length, self.get_descriptor_name(), self.descriptor_index)
+
+
+    def __repr__(self):
+
+
+        # XXX: for fancy demos, only
+        import io
+        import tableprint
+
+        string = super().__repr__()
+
+
+        formatted = io.StringIO()
+        summary_fields, total_bytes = self.get_decoded_descriptor()
+
+        if summary_fields:
+            tableprint.table(list(summary_fields.items()), out=formatted, width=40)
+
+
+        string = "{}\n{}".format(string, formatted.getvalue())
+        return string

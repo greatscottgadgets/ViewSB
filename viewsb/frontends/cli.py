@@ -6,17 +6,14 @@ from ..frontend import ViewSBFrontend
 
 
 class CLIFrontend(ViewSBFrontend):
-    """ Capture backend that captures packets from OpenVizsla. """
+    """ Simplest possible frontend: print our packets. """
 
-
-    def __init__(self):
-        """ Creates a new CLI display frontend. """
-        pass
+    UI_NAME = 'cli'
+    UI_DESCRIPTION = 'extremely simple UI that simply prints each packet'
 
 
     def handle_incoming_packet(self, packet):
-
-        # XXX: temporary, for debug only
+        """ Render any incoming packets to our UI. """
         # just print; no fancy frontend
         print(repr(packet))
 

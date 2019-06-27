@@ -4,6 +4,7 @@ USB packet capture file backend
 
 import errno
 import struct
+import argparse
 
 from .. import usb_types
 
@@ -22,7 +23,7 @@ class TransferType(Enum):
     BULK        = 3
 
     def associated_data_transfer_type(self):
-        """ 
+        """
         Returns the USBTransfer packet type most closely associated to the _payload_
         section of the provided transfer.
         """
@@ -71,7 +72,7 @@ class USBMonEvent:
 
     def apply_data(self, data):
         """ Accepts a set of external data to become our data. """
-        self.data = data 
+        self.data = data
 
 
     def get_setup_data(self):
@@ -94,7 +95,7 @@ class USBMonEvent:
             raw_metadata = struct.unpack(cls.SHORT_HEADER_FORMAT, data)
 
             # ... convert it to a dictionary, given appropriate names.
-            properties = dict(zip(cls.SHORT_HEADER_FIELD_NAMES, raw_metadata)) 
+            properties = dict(zip(cls.SHORT_HEADER_FIELD_NAMES, raw_metadata))
 
         else:
             raise NotImplementedError("parsing full-size usbmon headers isn't yet supported")
@@ -112,7 +113,7 @@ class USBMonEvent:
 
 
 class USBMonBackend(ViewSBBackend):
-    """ 
+    """
     Class that handles pcap data. Should not be instantiated directly;
     rather, instantiate one of its subclasses.
     """
@@ -225,7 +226,6 @@ class USBMonBackend(ViewSBBackend):
 
         # FIXME: handle!
         print(event)
-        pass
 
 
     def _get_timestamp_for_event(self, event):
@@ -247,7 +247,7 @@ class USBMonBackend(ViewSBBackend):
         else:
             handshake = USBPacketID.STALL if stall else USBPacketID.ACK
 
-        # Convert the 
+        # Convert the
         packet_type = event.transfer_type.associated_data_transfer_type()
         return packet_type(**self._common_packet_fields_for_event(event))
 
@@ -258,7 +258,7 @@ class USBMonBackend(ViewSBBackend):
 
 
     def _common_packet_fields_for_event(self, event):
-        """ 
+        """
         Generates a dictionary with the USBTransaction fields most appropriate for
         the provided event. Intended to provide a base for customizations.
         """
@@ -331,7 +331,7 @@ class USBMonBackend(ViewSBBackend):
 
 
     def _generate_status_transfer(self, event, last_transfer_direction):
-        """ 
+        """
         Returns a transfer that represents the status stage of the control transfer represented
         by this event.
         """
@@ -382,6 +382,24 @@ class USBMonFileBackend(USBMonBackend, FileBackend):
     Class that handles pcap data, read from a file; whether a special device file
     or a pre-captured pcap file.
     """
+
+    UI_NAME = "usbmon"
+    UI_DESCRIPTION = "the linux USB monitor (and files captured from it)"
+
+
+    @staticmethod
+    def parse_arguments(args, parent_parser=[]):
+
+        # Parse user input and try to extract our class options.
+        parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
+        parser.add_argument('--file', type=argparse.FileType('rb', bufsize=-0),
+                default='/dev/usbmon0', help="the file to read usbmon data from")
+        args, leftover_args = parser.parse_known_args()
+
+        #  Return the class and leftover arguments.
+        return (args.file, ), leftover_args
+
+
 
     # TODO: support modes other than compatibility mode?
     READ_CHUNK_SIZE = 48

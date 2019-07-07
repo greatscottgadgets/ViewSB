@@ -7,11 +7,19 @@ ViewSB core packet definitions -- defines the core ViewSB packet, and some of th
 import struct
 import binascii
 
+import enum
 from enum import Flag, auto
 from .usb_types import USBDirection, USBRequestType, USBRequestRecipient, USBPacketID
 
+from construct import *
 
-class ViewSBStatus(Flag):
+
+# XXX Temporary hack for __repr__.
+print_depth = 0
+
+
+
+class ViewSBStatus(enum.Flag):
     """ Enumeration representing USB packet statuses. """
 
     # Flags that can be provided for each flag.
@@ -34,8 +42,14 @@ class ViewSBPacket:
     Not to be confused with raw USB Packets, which are a very specific type of packet involved herein.
     """
 
+    # The fields specific to this class. These are usually accessed using get_fields, which returns
+    # the fields defined in the current or any parent class.
     FIELDS = {'timestamp', 'device_address', 'endpoint_number', 'direction', 'status', 'style',
         'data', 'summary', 'data_summary', 'subordinate_packets'}
+
+    # Data format. If a subclass overrides this with a construct Struct or BitStruct, that class
+    # can call `parse_data` to automatically parse its data payload.
+    DATA_FORMAT = None
 
     @classmethod
     def get_fields(cls):
@@ -80,7 +94,43 @@ class ViewSBPacket:
         pass
 
 
-    def parse_field_as_pid(self, field_name, required=True):
+    def parse_data(self, overwrite=False):
+        """
+        Parses the given packet's data using its DATA_FORMAT property, and uses the results to
+        populate its fields.
+
+        Args:
+            overwrite -- If true, fields with the same name as DATA_FORMAT fields will always be overwritten
+                with the parsed value. If false, they will be overwritten only if their value is None.'
+
+        Returns: the DATA_FORMAT parser results, in case we need to capture any left-over fields
+        """
+
+        #Parse the data into fields.
+        parsed = self.DATA_FORMAT.parse(self.data)
+
+        # Iterate over each of the class's fields, checking if we can pull data
+        # in from the parsed object.
+        for field in self.get_fields():
+
+            # Skip all fields starting with _ as private.
+            if field.startswith('_'):
+                continue
+
+            # If we already have a value for the given field, and we're not in overwrite,
+            # skip the relevant field.
+            if not overwrite and (getattr(self, field) is not None):
+                continue
+
+            # Finally, if we have a value for the new field, accept it.
+            if hasattr(parsed, field):
+                setattr(self, field, parsed[field])
+
+        # Finally, return the parser results.
+        return parsed
+
+
+    def parse_field_as_type(self, field_name, as_type, required=True):
         """ Ensures that a local packet field is a USBPacketID object; converting if necessary. """
 
         if not hasattr(self, field_name):
@@ -91,13 +141,31 @@ class ViewSBPacket:
 
         if getattr(self, field_name) is None:
             if required:
-                raise ValueError("{} packets require a valid PID in their {} field".format(type(self).__name__, field_name))
+                raise ValueError("{} packets require a valid {} in their {} field".format(
+                    type(self).__name__, as_type.__name__, field_name))
             else:
                 return
 
+        # If the type has a parse method; use it.
+        # Otherwise, call the type's constructor with the relevant value.
+        if hasattr(as_type, 'parse'):
+            conversion = as_type.parse
+        else:
+            conversion = as_type
+
         # Parse the current value as a PID.
         current_value = getattr(self, field_name)
-        setattr(self, field_name, USBPacketID.parse(current_value))
+        setattr(self, field_name, conversion(current_value))
+
+
+    def parse_field_as_pid(self, field_name, required=True):
+        """ Ensures that a local packet field is a USBPacketID object; converting if necessary. """
+        self.parse_field_as_type(field_name, USBPacketID, required=required)
+
+
+    def parse_field_as_direction(self, field_name, required=True):
+        """ Ensures that a local packet field is a USBPacketID object; converting if necessary. """
+        self.parse_field_as_type(field_name, USBDirection, required=required)
 
 
     def get_summary_fields(self):
@@ -214,6 +282,8 @@ class ViewSBPacket:
     def __repr__(self):
         """ Provide a quick, console-friendly representation of our data."""
 
+        global print_depth
+
         summary = self.summarize_data()
 
         if summary:
@@ -227,10 +297,19 @@ class ViewSBPacket:
             self.summarize(), data_summary, self.summarize_status())
 
         # Quick hack.
+        print_depth += 1
         for subordinate in self.subordinate_packets:
 
-            box_char = "┗"  if (subordinate is self.subordinate_packets[-1]) else "┣"
-            description += "\n\t {}━{}".format(box_char, subordinate)
+            # If the given subordinate ends the printing block; i.e. it's the last one, or it has a block
+            # of subordinates itself that are following, use an angle brace; otherwise, use a tee.
+            ends_group = subordinate is self.subordinate_packets[-1] or subordinate.subordinate_packets
+            box_char = "┗"  if ends_group else "┣"
+
+            # Indent the block properly for the given print depth.
+            indent = "\t" * print_depth
+
+            description += "\n{}{}━{}".format(indent, box_char, subordinate)
+        print_depth -=1
 
         return description
 
@@ -269,19 +348,42 @@ class USBPacket(ViewSBPacket):
         # and wrap this in our packet object.
         return cls(pid=packet_id, data=data, **fields)
 
-
-
     # TODO: detailed representation
+
+
+
+class USBStartOfFrame(USBPacket):
+    """ Class representing a USB start-of-frame (pseudo) packet. """
+    pass
+
+
+class USBStartOfFrameCollection(USBPacket):
+    """ Collection of USB SOFs that have been amalgamated for sane display. """
+
+    def summarize(self):
+        return "{} start-of-frame markers".format(len(self.subordinate_packets))
+
 
 class USBTokenPacket(USBPacket):
     """ Class representing a token packet. """
 
     FIELDS = {'crc5', 'crc_valid'}
 
+    DATA_FORMAT = BitsSwapped(BitStruct(
+        "device_address"  / BitsInteger(7),
+        "endpoint_number" / BitsInteger(4),
+        "crc5"            / BitsInteger(5),
+    ))
+
+
     def validate(self):
+        #parsed = self.parse_data()
+
+        self.endpoint_number = (self.data[1] & 0x7) << 1 | self.data[0] >> 7
+        self.device_address  = self.data[1] & 0x7F
 
         # Fill in our direction from our PID.
-        self.direction = self.pid.direction().name
+        self.direction = self.pid.direction()
 
         # TODO: validate crc5
 
@@ -338,7 +440,6 @@ class MalformedPacket(USBPacket):
     """ Class representing a generic malformed packet. """
 
     def validate(self):
-
         if self.status is None:
             self.status = 0
 
@@ -349,7 +450,7 @@ class MalformedPacket(USBPacket):
        if self.pid:
            return "{} packet; malformed".format(self.pid.summarize())
        else:
-           return "malformed packet"
+           return "invalid data ({} subpackets)".format(len(self.subordinate_packets))
 
 
 class USBTransaction(ViewSBPacket):
@@ -405,11 +506,28 @@ class USBTransfer(ViewSBPacket):
 class USBDataTransaction(USBTransaction):
     """ Class describing a data-carrying transaction. """
 
-    FIELDS = {'data_pid', 'handshake'}
+    FIELDS = { 'data_pid', 'handshake'}
 
     def validate(self):
         self.parse_field_as_pid('data_pid',  required=False)
         self.parse_field_as_pid('handshake', required=False)
+
+        # If we don't have a handshake, grab the handshake from the last packet
+        # in the transfer. # TODO: should this be the last packet?
+        if self.handshake is None and self.subordinate_packets:
+            self.handshake = self.subordinate_packets[-1].handshake
+
+        # If we don't have a direction field, populate it from the first contained packet.
+        if self.direction is None and self.subordinate_packets:
+            self.direction = self.subordinate_packets[0].direction
+
+        # If we have a data stage, use it to populate the data fields.
+        if len(self.subordinate_packets) == 3:
+            self.data     = self.data or self.subordinate_packets[1].data
+            self.data_pid = self.data_pid or self.subordinate_packets[1].data_pid
+
+    def summarize_status(self):
+        return self.handshake.name
 
 
 class USBDataTransfer(USBTransaction, USBTransfer):
@@ -418,11 +536,32 @@ class USBDataTransfer(USBTransaction, USBTransfer):
     FIELDS = {'pid_sequence_ok', 'handshake'}
 
     def summarize(self):
-        return "{}B {} transfer".format(len(self.data), self.direction.name)
+        if self.data:
+            return "{}B {} transfer".format(len(self.data), self.direction.name)
+        else:
+            return "data-less {} transfer".format(self.direction.name)
 
     def validate(self):
-        self.parse_field_as_pid('data_pid',  required=False)
         self.parse_field_as_pid('handshake', required=False)
+
+        # If we don't have a handshake, grab the handshake from the last packet
+        # in the transfer. # TODO: should this be the last packet?
+        if self.handshake is None and self.subordinate_packets:
+            self.handshake = self.subordinate_packets[-1].handshake
+
+        # If we don't have a direction field, populate it from the first contained packet.
+        if self.direction is None and self.subordinate_packets:
+            self.direction = self.subordinate_packets[0].direction
+
+        # If we don't have a populated data field, populate it.
+        if self.data is None:
+            self.data = bytearray()
+
+            for packet in self.subordinate_packets:
+                if type(packet) is USBDataTransaction and packet.data:
+                    self.data.extend(packet.data)
+
+        # TODO: validate PID sequence
 
 
 class USBTransferFragment(USBTransfer):
@@ -466,8 +605,25 @@ class USBSetupTransaction(USBTransaction):
         'value', 'index', 'request_length', 'handshake'
     }
 
-    def summarize_data(self):
-        return "value={:04x} index={:04x} length={:04x}".format(self.value, self.index, self.request_length)
+    # Define the data format for setup packets.
+    DATA_FORMAT = BitStruct(
+        "request_direction" / BitsInteger(1),
+        "request_type"      / BitsInteger(2),
+        "recipient"         / BitsInteger(5),
+        "request_number"    / Bytewise(Byte),
+        "value"             / Bytewise(Int16ul),
+        "index"             / Bytewise(Int16ul),
+        "request_length"    / Bytewise(Int16ul)
+    )
+
+    def validate(self):
+        self.parse_data()
+        self.parse_field_as_direction('request_direction')
+
+        # Extract our stalled field from the data/handshake PIDs.
+        self.stalled = (self.data_pid is USBPacketID.STALL) or (self.handshake is USBPacketID.STALL)
+
+
 
     @classmethod
     def from_setup_data(cls, setup_data, **fields):
@@ -498,6 +654,14 @@ class USBSetupTransaction(USBTransaction):
                 value=value, index=index, request_length=length, data=setup_data, **fields)
         return transaction
 
+    def summarize(self):
+        return "control request setup transaction for {} request".format(self.request_direction.name)
+
+
+    def summarize_data(self):
+        return "value={:04x} index={:04x} length={:04x}".format(self.value, self.index, self.request_length)
+
+
 
 
 class USBSetupTransfer(USBSetupTransaction):
@@ -507,7 +671,9 @@ class USBSetupTransfer(USBSetupTransaction):
     errors; so this is slightly semantically different in what you'd expect in
     subordinate_packets.
     """
-    pass
+
+    def summarize(self):
+        return "control request setup transfer for {} request".format(self.request_direction.name)
 
 
 
@@ -515,6 +681,8 @@ class USBControlTransfer(USBTransfer):
     """ Class representing a USB control transfer. """
 
     FIELDS = {'request_type', 'recipient', 'request_number', 'value', 'index', 'request_length', 'stalled'}
+
+
 
     @classmethod
     def from_subordinates(cls, setup_transfer, data_transfer, status_transfer):
@@ -551,6 +719,14 @@ class USBControlTransfer(USBTransfer):
         return cls(**fields)
 
 
+    def validate(self):
+        self.parse_field_as_type('request_type', USBRequestType, required=True)
+        self.parse_field_as_type('recipient', USBRequestRecipient, required=True)
+        self.parse_field_as_direction('direction', required=True)
+
+        # FIXME: validate our fields!
+
+
     def summarize(self):
         return "{} {} request #{} to {}".format(self.request_type.name, self.direction.name, self.request_number, self.recipient.name)
 
@@ -562,8 +738,3 @@ class USBControlTransfer(USBTransfer):
             return "-> STALL"
         else:
             return "-> ACK"
-
-    def validate(self):
-
-        # FIXME: validate our fields
-        pass

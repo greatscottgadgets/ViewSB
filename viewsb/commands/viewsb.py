@@ -21,6 +21,8 @@ from ..backends import *
 from ..frontend import ViewSBFrontend
 from ..frontends import *
 
+from ..decoders.filters import USBStartOfFrameFilter
+
 
 # For current test sanity, suppress SOF packets.
 def suppress_packet(packet):
@@ -69,14 +71,18 @@ def main():
     parser = argparse.ArgumentParser(description="open-source USB protocol analyzer")
 
     # General commands.
-    parser.add_argument('--list-backends', action='store_true',
-            help="list the available capture backends, then quit")
-    parser.add_argument('--list-frontends', action='store_true',
-            help="list the available UI frontends, then quit")
     parser.add_argument('backend', type=ViewSBBackend.get_subclass_from_name, nargs='?',
             help='the backend to use as a packet source')
     parser.add_argument('frontend', type=ViewSBFrontend.get_subclass_from_name, nargs='?',
             help='the frontend to use to display/save packets [default: tui]')
+
+    # Flags.
+    parser.add_argument('--list-backends', action='store_true',
+            help="list the available capture backends, then quit")
+    parser.add_argument('--list-frontends', action='store_true',
+            help="list the available UI frontends, then quit")
+    parser.add_argument('--include-sofs', '-S', action='store_true',
+            help="include USB start-of-frame markers in the capture; adds a load of load & noise")
 
     # Parse our known arguments.
     args, leftover_args = parser.parse_known_args()
@@ -92,7 +98,6 @@ def main():
     if not args.frontend:
         args.frontend = TUIFrontend
 
-
     backend_args, leftover_args  = args.backend.parse_arguments(leftover_args, [parser])
     frontend_args, leftover_args = args.frontend.parse_arguments(leftover_args, [parser])
 
@@ -105,6 +110,10 @@ def main():
 
     # Create our analyzer object.
     analyzer = ViewSBAnalyzer(backend, frontend)
+
+    # Unless we're including SOFs, instantiate a SOF filter to filter them out.
+    if not args.include_sofs:
+        analyzer.add_decoder(USBStartOfFrameFilter, to_front=True)
 
     # Run the analyzer.
     analyzer.run()

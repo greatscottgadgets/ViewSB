@@ -52,7 +52,12 @@ class ViewSBDecoder(ViewSBEnumerableFromUI):
 
 
     def can_handle_packet(self, packet):
-        return False
+        """
+        Accept all packets by default; this allows classes to instead raise
+        UnhandledPacket to inline-reject packets.
+        """
+
+        return True
 
 
     def handle_packet(self, packet):

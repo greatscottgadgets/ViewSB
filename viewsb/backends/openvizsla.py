@@ -59,6 +59,7 @@ try:
             if not self._should_be_suppressed(packet):
                 self._emit_packet(packet)
 
+
 except (ImportError, ModuleNotFoundError) as e:
     pass
 

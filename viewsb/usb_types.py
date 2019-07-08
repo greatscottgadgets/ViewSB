@@ -16,6 +16,11 @@ class USBDirection(IntEnum):
         return self is self.OUT
 
     @classmethod
+    def parse(cls, value):
+        """ Helper that converts a numeric field into a direction. """
+        return cls(value)
+
+    @classmethod
     def from_request_type(cls, request_type_int):
         """ Helper method that extracts the direction from a request_type integer. """
         return cls(request_type_int >> 7)
@@ -34,8 +39,7 @@ class USBDirection(IntEnum):
         return self.OUT if (self is self.IN) else self.IN
 
 
-    @classmethod
-    def to_endpoint_address(cls, endpoint_number):
+    def to_endpoint_address(self, endpoint_number):
         """ Helper method that converts and endpoint_number to an address, given direction. """
         if self.is_in():
             return endpoint_number | (1 << 7)
@@ -237,6 +241,7 @@ class USBRequestType(IntEnum):
         MASK  = 0b11
 
         return cls((request_type_int >> SHIFT) & MASK)
+
 
 
 class USBTransferType(IntEnum):

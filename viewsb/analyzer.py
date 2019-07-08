@@ -55,6 +55,27 @@ class ViewSBAnalyzer:
         self.frontend = ViewSBFrontendProcess(frontend_class, *frontend_arguments)
 
 
+    def add_decoder(self, decoder, *arguments, **kwargs):
+        """ Adds a given decoder to the analysis stack.
+
+        Arguments:
+            decoder -- The decoder class to add.
+            *arguments -- Any arguments to be passed to the decoder, after the analyzer.
+            to_front -- If true, the given decoder will be added to the front of the decoder stack.
+        """
+
+        # Extract our to_front argument from the captured arguments.
+        to_front = kwargs.pop('to_front', False)
+
+        # Create an instance of the relevant decoder...
+        instance = decoder(self, *arguments, **kwargs)
+
+        # ... and add it to the decoder queue.
+        if to_front:
+            self.decoders.insert(0, instance)
+        else:
+            self.decoders.append(instance)
+
 
     def process_analysis_queue(self):
         """ Processes any packets in the analysis queue. """
@@ -125,7 +146,7 @@ class ViewSBAnalyzer:
 
 
     def run_analysis_iteration(self):
-        """ 
+        """
         Runs a single iteration of our analysis process.
         This queries the backend for packets -once-, and then analyzes them.
         """

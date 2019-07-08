@@ -24,7 +24,8 @@ setup(
         'tableprint',
         'facedancer',
         'greatfet',
-        'pyopenvizsla'
+        'pyopenvizsla',
+        'urwid'
     ],
     dependency_links=['git+https://git@github.com/usb-tools/pyopenvizsla.git@master#egg=pyopenvizsla'],
     description='python-based USB Analyzer toolkit (and USB analyzer)',

@@ -392,6 +392,7 @@ class USBTransferGrouper(ViewSBDecoder):
         try:
             first_packet = self.packets_captured[pipe][0]
 
+
             # Any direction switch on a control endpoint means we're ending a transfer.
             direction_switch = (packet.direction != first_packet.direction)
             if (packet.endpoint_number == 0) and direction_switch:

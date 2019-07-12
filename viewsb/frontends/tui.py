@@ -4,10 +4,12 @@ Quick experiment with a TUI frontend
 
 import os
 import urwid
+import string
 import collections
 
 from urwid.widget import Widget
 from ..frontend import ViewSBFrontend
+from ..usb_types import USBDirection
 
 
 class TUIFrontend(ViewSBFrontend):
@@ -33,9 +35,9 @@ class TUIFrontend(ViewSBFrontend):
         ('key_column', 'light blue', ''),
         ('okay', 'dark gray', ''),
         ('okay_focus', 'dark gray', 'dark blue'),
+
         ('error', 'light red', ''),
         ('error_focus', 'light red', 'dark blue'),
-
 
         ('icon',       'dark gray', ''),
         ('icon_focus', 'dark gray',  'dark blue'),
@@ -54,31 +56,19 @@ class TUIFrontend(ViewSBFrontend):
 
     # Initial footer text.
     DEFAULT_FOOTER_TEXT = [
-        ('title', "capture running"), "    ",
-        ('key', "UP"), ",", ('key', "DOWN"), ",",
-        ('key', "PAGE UP"), ",", ('key', "PAGE DOWN"),
-        "  ",
-        ('key', "+"), ",",
-        ('key', "-"), "  ",
-        ('key', "LEFT"), "  ",
-        ('key', "HOME"), "  ",
-        ('key', "END"), "  ",
-        ('key', "Q"),
+        ('title', "ViewSB USB Analyzer"), "    ",
+        ('key', "+"), "=expand ",
+        ('key', "-"), "=collapse  ",
+        ('key', "a"), "utoscroll ",
+        ('key', "q"), "uit ",
     ]
-
-    # Default title for a ViewSB TUI.
-    DEFAULT_VIEW_TITLE = " ViewSB -- connected -- using magic text-UI frontend"
 
     # How often we poll the backend for new packets, in seconds.
     BACKGROUND_REFRESH_INTERVAL = 0.25
 
 
-    def __init__(self, title=None):
+    def __init__(self):
         """ Initializes the UI for the TUI widget. """
-
-        # If no title is provided, use the default one.
-        if title is None:
-            title = self.DEFAULT_VIEW_TITLE
 
         # For now: create a really inefficient in-memory packet store,
         # and anchor our tree-view to that.
@@ -95,10 +85,21 @@ class TUIFrontend(ViewSBFrontend):
         self.decoder_rows = urwid.SimpleListWalker([])
         decoder_rows_list = urwid.AttrWrap(urwid.ListBox(self.decoder_rows), 'decoder')
 
+        # Create the "raw hex data" box.
+        self.hex_data_rows = urwid.SimpleListWalker([])
+        hexdump_rows_list = urwid.AttrWrap(urwid.ListBox(self.hex_data_rows), 'hexdump')
+
+        # Right panel.
+        right_panel = urwid.Pile([
+            ('weight', 3, decoder_rows_list),
+            ('pack', urwid.Text(('body', ""))),
+            hexdump_rows_list
+        ])
+
         # Create the outer UI chrome for our text UI.
         # TODO: generate the footer text dynamically?
-        self.header  = urwid.Text("  " + title)
-        self.columns = urwid.Columns([('weight', 2, self.packet_list), decoder_rows_list], dividechars=1)
+        self.header  = VSBPacketWidget.get_row_headers(style='head')
+        self.columns = urwid.Columns([('weight', 2, self.packet_list), right_panel], dividechars=1)
         self.footer  = urwid.Text(self.DEFAULT_FOOTER_TEXT)
         self.view    = urwid.Frame(
             body=urwid.AttrWrap(self.columns,  'body'),
@@ -112,10 +113,67 @@ class TUIFrontend(ViewSBFrontend):
 
         # Populate our ancillary packet views.
         self.populate_decoder_view(packet)
+        self.populate_hex_view(packet)
+
+
+    def populate_hex_view(self, packet):
+        """ Populate the bottom-right panel with a hex dump of the given packet. """
+
+        # TODO: auto-compute these based on the column width of our hex-list panel
+        hex_row_width    = 8
+        hex_column_ratio = 1
+
+        # Start off with an empty hex view.
+        self.hex_data_rows.clear()
+
+        if packet.get_raw_data is None:
+            return
+
+        data = packet.get_raw_data()
+
+        # Iterate over our data, capturing it into row-length chunks.
+        for i in range(0, len(data), hex_row_width):
+            hex_bytes   = []
+            ascii_bytes = []
+
+            # Extract the data chunk we're looking for.
+            chunk = data[i:i + hex_row_width]
+
+            # Iterate over each byte in the given chunk.
+            for byte in chunk:
+
+                # Add the hex byte to our byte view...
+                hex_bytes.append('{:02x}'.format(byte))
+
+                # ... and add our ASCII summary.
+                char = chr(byte)
+                if char in string.ascii_letters + string.digits + string.punctuation:
+                    ascii_bytes.append(char)
+                else:
+                    ascii_bytes.append('.')
+
+            # Pad out the last row, for alignment.
+            if len(chunk) < hex_row_width:
+                for _ in range(0, hex_row_width - len(chunk)):
+                    hex_bytes.append('  ')
+
+
+            # Generate summaries in hex and ascii...
+            hex_summary   = urwid.Text(' '.join(hex_bytes), align='right')
+            ascii_summary = urwid.Text(''.join(ascii_bytes), align='left')
+
+
+            # ... and add them to our view.
+            row = urwid.Columns([
+                ('weight', hex_column_ratio, hex_summary),
+                ('weight', 1, ascii_summary),
+            ], dividechars=1)
+            self.hex_data_rows.append(row)
+
 
 
     def populate_decoder_view(self, packet):
-        """ Populate the right-hand panel with the decoded version of a given packet. """
+        """ Populate the top-right panel with the decoded version of a given packet. """
 
         fields = packet.get_detail_fields()
 
@@ -211,8 +269,16 @@ class TUIFrontend(ViewSBFrontend):
 
     def handle_incoming_packet(self, packet):
         """ Pass any incoming packets to our packet collection. """
+
+        # Add the packet to our packet collection...
         self.root_node.add_packet(packet)
 
+        # If we're in autoscroll mode, handle autoscrolling.
+        if self.packet_list.autoscroll:
+
+            # Handle scrolling as if the user hit the END key.
+            # This keeps the logic relatively consistent, and meshes into urwid's event model.
+            self.loop.process_input(['end', 'a'])
 
 
     def unhandled_input(self, k):
@@ -251,14 +317,14 @@ class PacketListBox(urwid.TreeListBox):
         # Register our focus-changed callback.
         self.focus_changed_callback = focus_changed_callback
 
+        # Autoscroll by default.
+        self.autoscroll = True
+
         super().__init__(walker)
 
 
     def focus_changed(self):
         """ Called when the focus may have changed; handles focus-change event generation. """
-
-        #if self.focus is self.last_focus:
-        #    return
 
         # Get the currently focused node, and re-render it with focus.
         focused_node = self.focus.get_node()
@@ -279,9 +345,29 @@ class PacketListBox(urwid.TreeListBox):
     def keypress(self, size, key):
         """ Keypress interposer that issues the "focus change detect" code after a keypress. """
 
-        # Issue keypresses to our superclass, which notifies its widgets.
-        key = self.__super.keypress(size, key)
-        key = self.unhandled_input(size, key)
+        vim_mappings = {
+            'h': 'left',
+            'j': 'down',
+            'k': 'up',
+            'l': 'right'
+        }
+
+        # Once the user's interacted with the widget, disable autoscroll.
+        self.autoscroll = False
+
+        # If we have a vim-mapping for our keys, translate it.
+        if key in vim_mappings.keys():
+            key = vim_mappings[key]
+
+        if key == 'home':
+            self.focus_home(size)
+        elif key == 'end':
+            self.focus_end(size)
+        elif key == 'a':
+            self.autoscroll = True
+        else:
+            key = self.__super.keypress(size, key)
+            key = self.unhandled_input(size, key)
 
         # Check for a focus change, which can be triggered by a keypress.
         self.focus_changed()
@@ -308,6 +394,7 @@ class PacketListBox(urwid.TreeListBox):
 
         focused_node = self.focus.get_node()
         return focused_node.get_value()
+
 
 
 
@@ -398,16 +485,16 @@ class VSBPacketWidget(urwid.TreeWidget):
             'unexpanded': urwid.SelectableIcon('⊞', 0),
             'expanded':   urwid.SelectableIcon('⊟', 0),
             'leaf':       urwid.Text('•'),
-            'in':         urwid.SelectableIcon('⇐', 0),
-            'out':        urwid.SelectableIcon('⇒', 0)
+            'in':         urwid.Text(('data', '↩  IN')),
+            'out':        urwid.Text(('data', 'OUT ↪')),
         }
     else:
         ICONS = {
             'unexpanded': urwid.SelectableIcon('+', 0),
             'expanded':   urwid.SelectableIcon('-', 0),
             'leaf':       urwid.Text('*'),
-            'in':         urwid.SelectableIcon('<', 0),
-            'out':        urwid.SelectableIcon('>', 0)
+            'in':         urwid.Text('<I'),
+            'out':        urwid.Text('O>')
         }
 
 
@@ -422,7 +509,7 @@ class VSBPacketWidget(urwid.TreeWidget):
 
         self.expanded = False
         self.is_leaf = not packet.subordinate_packets
-        self._wrapped_widget = self.get_indented_widget()
+        self._wrapped_widget = self.get_row_widget()
 
 
     def get_icon(self):
@@ -439,17 +526,94 @@ class VSBPacketWidget(urwid.TreeWidget):
 
 
     def update_expanded_icon(self):
-        self._w.base_widget.widget_list[0] = self.get_icon()
+        self.core_widget.widget_list[0] = self.get_icon()
 
 
-    def get_indented_widget(self):
+    @classmethod
+    def _get_text_column(cls, value, style='summary', autohex=True, width=None, weighted=False, align='left', empty='--'):
+
+        if value is None:
+            value = empty
+
+        if autohex and isinstance(value, int):
+            value = "{:x}".format(value)
+
+        # ... wrap it with a text object...
+        widget = urwid.Text((style, str(value)), align=align)
+
+        # ... optionally add a width for urwid.Columns...
+        if width is not None:
+            if weighted:
+                widget = ('weight', width, widget)
+            else:
+                widget = (width, widget)
+
+        # ... and return the new widget.
+        return widget
+
+
+    def _get_direction_icon(self, direction, width=6):
+
+        if direction == USBDirection.IN:
+            return (width, self.ICONS['in'])
+        elif direction == USBDirection.OUT:
+            return (width, self.ICONS['out'])
+        else:
+            return (width, urwid.Text(""))
+
+
+    @classmethod
+    def get_row_headers(cls, style=''):
+        """ Returns a columns object suitable for column headers."""
+
+        return urwid.Columns([
+            #cls._get_text_column('Bus',    style=style, width=3),
+            cls._get_text_column('Dev',    style=style, width=3),
+            cls._get_text_column('EP',     style=style, width=3),
+            cls._get_text_column('Dir',    style=style, width=6),
+            cls._get_text_column('Len',    style=style, width=5),
+            cls._get_text_column('   Packet', style=style)
+        ], dividechars=1)
+
+
+
+    def get_row_widget(self):
+        """ Returns the widget that represents the given packet. """
+
+        # Get a quick reference to our core packet.
+        packet = self.packet
+
+        if packet.get_summary_fields is None:
+            return urwid.Text("")
+
+        summary = packet.get_summary_fields()
+
+        # Generate the style for our packet's style.
+        status_style = 'okay'
+        if summary['style'] and ('exceptional' in summary['style']):
+            status_style = 'error'
+
+        # Get the fields of our packet entry.
+        return urwid.Columns([
+            #self._get_text_column(summary['bus_number'],      width=3),
+            self._get_text_column(summary['device_address'],  width=3),
+            self._get_text_column(summary['endpoint'],        width=3),
+            self._get_direction_icon(summary['is_in']),
+            self._get_text_column(summary['length'], autohex=False, width=5, empty=''),
+            self.get_indented_core(),
+            self._get_text_column(summary['status'], style=status_style, width=6, align='center'),
+            self._get_text_column(summary['data_summary'], style='data')
+        ], dividechars=1)
+
+
+    def get_indented_core(self):
         widget = self.get_inner_widget()
-
         icon   = ('fixed', 1, self.get_icon())
-        widget = urwid.Columns([icon, widget], dividechars=1)
+
+        self.core_widget = urwid.Columns([icon, widget], dividechars=1)
 
         indent_cols = self.get_indent_cols()
-        return urwid.Padding(widget, width=('relative', 100), left=indent_cols + 1)
+        return urwid.Padding(self.core_widget, width=('relative', 100), left=indent_cols + 1)
 
 
     def prev_inorder(self):
@@ -466,28 +630,7 @@ class VSBPacketWidget(urwid.TreeWidget):
 
 
     def get_display_text(self):
-        packet = self.packet
-        text = [('summary', packet.summarize())]
-
-        try:
-            status_summary = packet.summarize_status()
-
-            # XXX temporary horrorhack -- use .style instead
-            style = 'error' if ('STALL' in status_summary) else 'okay'
-
-            # TODO: color me per the actual status (style=error?)
-            text.append((style, " " + status_summary))
-        except:
-            pass
-
-        if packet.data:
-            text.append(('padding', '  '))
-
-            data = ('data', " [{}]".format(packet.summarize_data()))
-            text.append(data)
-
-        return text
-
+        return [('summary', self.packet.summarize())]
 
     def selectable(self):
         # Always allow our packets to be selectable, so the user can
@@ -565,10 +708,18 @@ class TUIPacketCollection:
         """ Accepts a new subordinate packet into the collection. """
         self.subordinate_packets.append(packet)
 
-
     def summarize(self):
         return "New Capture ({}):".format(len(self.subordinate_packets))
 
+    def summarize_data(self):
+        return None
+
+    def summarize_status(self):
+        return None
 
     def get_detail_fields(self):
         return []
+
+
+    def __getattr__(self, attr):
+        return None

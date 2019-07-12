@@ -44,7 +44,7 @@ class ViewSBPacket:
 
     # The fields specific to this class. These are usually accessed using get_fields, which returns
     # the fields defined in the current or any parent class.
-    FIELDS = {'timestamp', 'device_address', 'endpoint_number', 'direction', 'status', 'style',
+    FIELDS = {'timestamp', 'bus_number', 'device_address', 'endpoint_number', 'direction', 'status', 'style',
         'data', 'summary', 'data_summary', 'subordinate_packets'}
 
     # Data format. If a subclass overrides this with a construct Struct or BitStruct, that class
@@ -77,6 +77,9 @@ class ViewSBPacket:
         # Populate our fields for from the arguments passed in.
         for field in self.get_fields():
             setattr(self, field, kwargs[field] if (field in kwargs) else None)
+
+        if self.style is None:
+            self.style = ""
 
         # If no subordinate packets were provided, convert that to an empty list.
         if self.subordinate_packets is None:
@@ -190,10 +193,11 @@ class ViewSBPacket:
         return {
             'timestamp':       self.timestamp,
             'length':          len(self.data) if self.data is not None else None,
+            'bus_number':      self.bus_number,
             'device_address':  self.device_address,
             'endpoint':        self.endpoint_number,
             'is_in':           self.direction,
-            'status':          self.status,
+            'status':          self.summarize_status(),
             'style':           self.style,
             'summary':         self.summarize(),
             'data_summary':    self.summarize_data()
@@ -443,6 +447,8 @@ class MalformedPacket(USBPacket):
         if self.status is None:
             self.status = 0
 
+        self.style = "error exceptional"
+
         # Malformed packets are always a protocol error.
         #self.status |= ViewSBStatus.ERROR
 
@@ -451,6 +457,10 @@ class MalformedPacket(USBPacket):
            return "{} packet; malformed".format(self.pid.summarize())
        else:
            return "invalid data ({} subpackets)".format(len(self.subordinate_packets))
+
+    def summarize_status(self):
+        """ Always summarize our status as an error. """
+        return "*INV*"
 
 
 class USBTransaction(ViewSBPacket):
@@ -474,8 +484,7 @@ class USBTransaction(ViewSBPacket):
 
     def summarize_status(self):
         if self.handshake:
-            # FIXME: don't include this arrow, it's just stylish for now
-            return "-> {}{}".format(self.handshake.name, super().summarize_status())
+            return "{}{}".format(self.handshake.name, super().summarize_status())
 
         else:
             return super().summarize_status()
@@ -726,15 +735,21 @@ class USBControlTransfer(USBTransfer):
 
         # FIXME: validate our fields!
 
+        # Set up our style.
+        # FIXME: display error statuses as well
+        if self.stalled:
+            self.style = "exceptional"
+        else:
+            self.style = None
+
 
     def summarize(self):
         return "{} {} request #{} to {}".format(self.request_type.name, self.direction.name, self.request_number, self.recipient.name)
 
 
     def summarize_status(self):
-
-        # FIXME: get rid of the stylish arrow
+        # FIXME: display error statuses, as well
         if self.stalled:
-            return "-> STALL"
+            return "STALL"
         else:
-            return "-> ACK"
+            return "ACK"

@@ -170,6 +170,9 @@ class USBTransactionDecoder(ViewSBDecoder):
 
     def emit_transaction(self, sequence_error=False):
 
+        if self._first_captured() is None:
+            return
+
         fields = self._first_captured().__dict__.copy()
 
         fields['token']     = self._first_captured().pid
@@ -372,6 +375,20 @@ class USBTransferGrouper(ViewSBDecoder):
         if packet.token is USBPacketID.SETUP:
             return True
 
+
+        # If this is a control endpoint packet, apply special rules.
+        try:
+            first_packet = self.packets_captured[pipe][0]
+
+
+            # Any direction switch on a control endpoint means we're ending a transfer.
+            direction_switch = (packet.direction != first_packet.direction)
+            if (packet.endpoint_number == 0) and direction_switch:
+                return True
+        except (KeyError, IndexError):
+            return False
+
+
         return False
 
 
@@ -388,18 +405,7 @@ class USBTransferGrouper(ViewSBDecoder):
         if packet.token is USBPacketID.SETUP:
             return True
 
-        # If this is a control endpoint packet, apply special rules.
-        try:
-            first_packet = self.packets_captured[pipe][0]
-
-
-            # Any direction switch on a control endpoint means we're ending a transfer.
-            direction_switch = (packet.direction != first_packet.direction)
-            if (packet.endpoint_number == 0) and direction_switch:
-                return True
-        except KeyError:
-            return False
-
+        return False
 
     def enqueue_packet(self, pipe, packet):
         """ Enqueues a given packet on the relevant pipe. """

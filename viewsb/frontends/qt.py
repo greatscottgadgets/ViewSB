@@ -5,6 +5,7 @@ Qt Frontend for ViewSB
 This file is part of ViewSB
 """
 
+import os
 import multiprocessing
 
 from datetime import datetime
@@ -80,7 +81,7 @@ class QtFrontend(ViewSBFrontend):
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
 
         self.app = QApplication([])
-        self.ui_file = QtCore.QFile('viewsb/frontends/qt.ui')
+        self.ui_file = QtCore.QFile(os.path.dirname(os.path.realpath(__file__)) + '/qt.ui')
 
         self.loader = QUiLoader()
         self.window: QtWidgets.QMainWindow = self.loader.load(self.ui_file)

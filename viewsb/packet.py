@@ -567,7 +567,7 @@ class USBDataTransfer(USBTransaction, USBTransfer):
             self.data = bytearray()
 
             for packet in self.subordinate_packets:
-                if type(packet) is USBDataTransaction and packet.data:
+                if type(packet) is USBDataTransaction and packet.data and packet.handshake == USBPacketID.ACK:
                     self.data.extend(packet.data)
 
         # TODO: validate PID sequence

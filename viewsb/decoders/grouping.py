@@ -357,9 +357,9 @@ class USBTransferGrouper(ViewSBDecoder):
         # Emit a single data transfer containing all of our packets.
         self._emit_data_transfer_from_packets(packets)
 
-        # If we captured a stauts packet; emit it.
+        # If we captured a status packet; emit it.
         if status_packet:
-            self._emit_data_transfer_from_packets([status_packet])
+            self.enqueue_packet(pipe_identifier, status_packet)
 
 
 

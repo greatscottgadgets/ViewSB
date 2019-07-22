@@ -1,6 +1,9 @@
 """
 ViewSB Worker -- the primary logic for receiving USB data from a Backend (e.g. protocol analyzer hardware), running
 Decoders, and outputting data to a Frontend (e.g. our main GUI).
+
+
+This file is part of ViewSB
 """
 
 import queue

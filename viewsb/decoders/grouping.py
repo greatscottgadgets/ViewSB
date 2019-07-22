@@ -2,6 +2,9 @@
 Core decoders that handle manipulation of standard USB packets.
 
 Includes functionality for e.g. breaking packets into transfers / transactions.
+
+
+This file is part of ViewSB
 """
 
 import collections

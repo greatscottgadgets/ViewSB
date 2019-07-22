@@ -1,5 +1,8 @@
 """
 Quick experiment with a TUI frontend
+
+
+This file is part of ViewSB
 """
 
 import os

@@ -1,5 +1,8 @@
 """
 Core decoder definitions for ViewSB.
+
+
+This file is part of ViewSB
 """
 
 from .frontend import ViewSBEnumerableFromUI

@@ -1,5 +1,8 @@
 """
 USB packet capture file backend
+
+
+This file is part of ViewSB
 """
 
 import errno

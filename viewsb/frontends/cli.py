@@ -1,5 +1,8 @@
 """
 Basic dump-packets-to-the-console UI for ViewSB.
+
+
+This file is part of ViewSB
 """
 
 from ..frontend import ViewSBFrontend

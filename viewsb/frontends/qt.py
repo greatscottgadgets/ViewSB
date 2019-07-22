@@ -1,5 +1,8 @@
 """
 Qt Frontend for ViewSB
+
+
+This file is part of ViewSB
 """
 
 import multiprocessing

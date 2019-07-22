@@ -1,5 +1,8 @@
 """
 Protocol decoder for standard USB Requests.
+
+
+This file is part of ViewSB
 """
 
 

@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+
+"""
+This file is part of ViewSB
+Copyright (C) 2019 Katherine J. Temkin, Mikaela Szekely
+
+ViewSB is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later
+version.
+"""
+
 from setuptools import setup, find_packages
 
 setup(
@@ -12,7 +23,7 @@ setup(
     },
 
     # Current maintainer; but not sole author. :)
-    # Major credit to Mikaela Szekely (@qyriad). See the commit logs for full info.
+    # Major credit to Mikaela Szekely (@Qyriad). See the commit logs for full info.
     author='Katherine J. Temkin',
     author_email='k@ktemkin.com',
     tests_require=[''],

@@ -1,5 +1,8 @@
 """
 OpenVizsla backend for ViewSB
+
+
+This file is part of ViewSB
 """
 
 # pylint: disable=maybe-no-member,access-member-before-definition

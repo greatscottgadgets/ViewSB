@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Main command-line runner for ViewSB.
+
+
+This file is part of ViewSB
 """
 
 import sys

@@ -1,5 +1,8 @@
 """
 Functionality for working with USB descriptors.
+
+
+This file is part of ViewSB
 """
 
 import construct

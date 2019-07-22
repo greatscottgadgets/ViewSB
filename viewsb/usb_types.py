@@ -1,5 +1,8 @@
 """
 USB types -- defines enumerations that describe standard USB types
+
+
+This file is part of ViewSB
 """
 
 from enum import Enum, IntFlag, IntEnum

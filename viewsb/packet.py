@@ -1,5 +1,8 @@
 """
 ViewSB core packet definitions -- defines the core ViewSB packet, and some of the core analyzer products
+
+
+This file is part of ViewSB
 """
 
 # pylint: disable=maybe-no-member,access-member-before-definition

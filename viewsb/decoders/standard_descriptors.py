@@ -1,6 +1,9 @@
 """
 Decoders that fill in descriptor data onto relevant transfers
 (e.g. GetDescriptor and SetDescriptor)
+
+
+This file is part of ViewSB
 """
 
 import construct

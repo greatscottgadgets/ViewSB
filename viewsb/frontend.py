@@ -1,5 +1,8 @@
 """
 ViewSB frontend class definitions -- defines the abstract base for things that display USB data
+
+
+This file is part of ViewSB
 """
 
 import io

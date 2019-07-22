@@ -1,6 +1,9 @@
 """
 Support methods for communicating between ViewSB processes.
 Used for comms between the frontend, backend, and analyzer threads.
+
+
+This file is part of ViewSB
 """
 
 import os

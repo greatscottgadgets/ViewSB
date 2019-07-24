@@ -104,13 +104,13 @@ class GetStatus(StandardControlRequest):
     REQUEST_NUMBER = 0
     REQUEST_NAME = "GET STATUS"
 
-    FIELDS = {}
+    FIELDS = set()
 
     def validate(self):
         self.new_address = self.value
 
     def summarize(self):
-        return "requesting {} status".format(self.recipient.name.tolower())
+        return "requesting {} status".format(self.recipient.name.lower())
 
 
 class SetAddressRequest(StandardControlRequest):

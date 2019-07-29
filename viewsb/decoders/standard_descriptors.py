@@ -7,6 +7,7 @@ This file is part of ViewSB
 """
 
 import construct
+from construct import this
 
 from .standard_requests import GetDescriptorRequest
 
@@ -97,7 +98,7 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
         try:
             class_text = self.get_name_for_class(decoded)
             return "vid={:04x}, pid={:04x}, class={}".format(
-                decoded.idVendor, 
+                decoded.idVendor,
                 decoded.idProduct,
                 class_text)
         except (KeyError, TypeError, AttributeError):
@@ -230,12 +231,12 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
 
 
     def handle_data_remaining_after_decode(self, data):
-        """ 
+        """
         We don't specify the data to decode in the descriptor definition; instead,
         we read the string itself out of the left-over body. Do that here.
         """
 
- 
+
         # If we have a string index, this is a real search for a string.
         if self.index:
 
@@ -296,7 +297,7 @@ class GetEndpointDescriptorRequest(GetDescriptorRequest):
     BINARY_FORMAT = DescriptorFormat(
             "bLength"             / DescriptorField("Length"),
             "bDescriptorType"     / DescriptorNumber(5),
-            "bEndpointAddress"    / DescriptorField("Interface number"),
+            "bEndpointAddress"    / DescriptorField("EndpointAddress"),
             "bmAttributes"        / DescriptorField("Attributes"),
             "wMaxPacketSize"      / DescriptorField("Maximum Packet Size"),
             "bInterval"           / DescriptorField("Polling interval"),
@@ -318,3 +319,14 @@ class GetDeviceQualifierDescriptorRequest(GetDescriptorRequest):
             "_bReserved"          / construct.Optional(construct.Const(b"\0"))
     )
 
+
+
+class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
+
+    DESCRIPTOR_NAME = "class-specific"
+    BINARY_FORMAT = DescriptorFormat(
+            "bLength"             / DescriptorField("Length"),
+            "bDescriptorType"     / DescriptorNumber(0x24),
+            "bDescriptorSubtype"  / DescriptorField("Descriptor Subtype"),
+            "data"                / construct.Bytes(this.bLength)
+    )

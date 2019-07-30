@@ -43,7 +43,7 @@ class StandardControlRequest(USBControlTransfer):
     @classmethod
     def from_control_transfer(cls, transfer):
         """ Creates a new instance of the current class from the given control transfer. """
-        
+
         # Trivial "copy constructor".
         return cls(**transfer.__dict__)
 
@@ -55,7 +55,7 @@ class StandardControlRequest(USBControlTransfer):
         or none if we can't generate a more specialized version.
         """
 
-        # Iterate over all of our subclasses, until we find one that handles this 
+        # Iterate over all of our subclasses, until we find one that handles this
         # type of request
         for subclass in cls.__subclasses__():
             if subclass.handles_request(transfer):
@@ -153,8 +153,8 @@ class GetDescriptorRequest(StandardControlRequest, DescriptorTransfer):
         self.descriptor_index = self.value & 0xFF
 
 
-    def get_descriptor_name(self):
-        """ 
+    def get_pretty_descriptor_name(self):
+        """
         Returns the descriptor name; or a short-stand-in-summary when the name is
         unavailable or misleading (e.g. for a 'get string descriptor, index 0').
         """
@@ -166,7 +166,7 @@ class GetDescriptorRequest(StandardControlRequest, DescriptorTransfer):
 
     def summarize(self):
         return "requesting {} bytes of {} #{}".format(
-            self.request_length, self.get_descriptor_name(), self.descriptor_index)
+            self.request_length, self.get_pretty_descriptor_name(), self.descriptor_index)
 
 
     def __repr__(self):

@@ -14,6 +14,7 @@ from .standard_requests import GetDescriptorRequest
 from .. import usb_types
 from ..decoder import ViewSBDecoder, UnhandledPacket
 from ..descriptor import DescriptorFormat, DescriptorField, DescriptorNumber
+from ..device_model import DeviceModel
 
 
 class DescriptorRequestDecoder(ViewSBDecoder):
@@ -116,8 +117,60 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
             "bConfigurationValue" / DescriptorField("Configuration number"),
             "iConfiguration"      / DescriptorField("Description string"),
             "bmAttributes"        / DescriptorField("Attributes"),
-            "bMaxPower"           / DescriptorField("Max power Consumption"),
+            "bMaxPower"           / DescriptorField("Max power consumption"),
     )
+
+
+    def validate(self):
+
+        # Run any parent validation.
+        super().validate()
+
+        # Parse the configuration descriptor and its subordinates.
+        self.parse_with_subordinates()
+
+
+
+    def find_last_descriptor(self, descriptor_number, subordinate_number=None):
+        """
+        Returns the last (as in 'most recent') subordinate descriptor of the current type.
+
+        Params:
+            descriptor_number -- The descriptor number to search for.
+            subordinate_number -- If provided, the search will be limited to only subordinates
+                that occurred -before- the given subordinate index.
+        """
+
+        last_interface_descriptor = None
+
+        # Iterate over each of our subordinates...
+        for index, subordinate in enumerate(self.subordinates):
+
+            # ... skipping anything that's not of the correct type.
+            if subordinate['raw']['bDescriptorType'] != descriptor_number:
+                continue
+
+            # If we don't occur before provided subordinate number, we're finished searching.
+            if subordinate_number and index >= subordinate_number:
+                break
+
+            # And keep track of the last interface descriptor we've seen.
+            last_interface_descriptor = subordinate['raw']
+
+        return last_interface_descriptor
+
+
+
+    def find_last_interface_descriptor(self, subordinate_number=None):
+        """
+        Returns the last (as in 'most recent') subordinate interface descriptor currently known.
+
+        Params:
+            subordinate_number -- If provided, the search will be limited to only subordinates
+                that occurred -before- the given subordinate index.
+        """
+
+        return self.find_last_descriptor(GetInterfaceDescriptorRequest.get_descriptor_number(), subordinate_number)
 
 
     def summarize_data(self):
@@ -128,17 +181,17 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
         try:
             # FIXME: describe the type of interfaces?
             # FIXME: provide subordinate descriptor count
-            return "{} interface".format(decoded.bNumInterfaces)
+            return "{} interface(s)".format(decoded['bNumInterfaces'])
         except KeyError:
             return super().summarize_data()
 
 
-    def handle_data_remaining_after_decode(self, data):
+
+    def handle_data_remaining_after_decode(self, data, subordinate_number):
         """ Handle a configuration descriptor's subordinate descriptors. """
 
         if len(data) < 2:
-            # FIXME: indicate a malformed packet!
-            return (None, None, 0)
+            return (None, None, None, 0)
 
         descriptor_reported_length = data[0]
         descriptor_number          = data[1]
@@ -148,11 +201,13 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
 
         # If we found a descriptor class, use it.
         if descriptor_class:
-            decoded, bytes_decoded = descriptor_class.decode_data_as_descriptor(data)
-            return descriptor_class.DESCRIPTOR_NAME, decoded, bytes_decoded
+            decoded, bytes_decoded = descriptor_class.decode_data_as_descriptor(data, parent=self)
+            raw, _ = descriptor_class.decode_data_as_descriptor(data, use_pretty_names=False,
+                parent=self, subordinate_number=subordinate_number)
+            return descriptor_class.get_descriptor_name(data, self), decoded, raw, bytes_decoded
         else:
-            name = 'Subordinate Descriptor #{}'.format(descriptor_number)
-            return name, data[:descriptor_reported_length], descriptor_reported_length
+            name = 'Subordinate # {}: descriptor #{}'.format(subordinate_number, descriptor_number)
+            return name, data[:descriptor_reported_length], data[:descriptor_reported_length], descriptor_reported_length
 
 
 
@@ -230,7 +285,7 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
         return strings
 
 
-    def handle_data_remaining_after_decode(self, data):
+    def handle_data_remaining_after_decode(self, data, subordinate_number):
         """
         We don't specify the data to decode in the descriptor definition; instead,
         we read the string itself out of the left-over body. Do that here.
@@ -244,13 +299,13 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
             string = data.decode('utf-16', 'replace')
 
             # Parse the string descriptor.
-            return ('utf-16 string', string, len(data))
+            return ('utf-16 string', string, data, len(data))
 
         # If our index is zero, this is a list of supported languages.
         else:
 
             # And return a single-column table displaying the supported languages.
-            return ('languages supported', self._get_supported_language_strings(data), len(data))
+            return ('languages supported', self._get_supported_language_strings(data), data, len(data))
 
 
     def summarize_data(self):
@@ -264,11 +319,11 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
             return ', '.join(self._get_supported_language_strings(string_payload))
 
 
-    def get_descriptor_name(self):
+    def get_pretty_descriptor_name(self):
 
         # If this a real string descriptor request, render it accordingly
         if self.index:
-            return super().get_descriptor_name()
+            return super().get_pretty_descriptor_name()
 
         # otherwise, indicate the special type of string descriptor it is
         else:
@@ -297,7 +352,7 @@ class GetEndpointDescriptorRequest(GetDescriptorRequest):
     BINARY_FORMAT = DescriptorFormat(
             "bLength"             / DescriptorField("Length"),
             "bDescriptorType"     / DescriptorNumber(5),
-            "bEndpointAddress"    / DescriptorField("EndpointAddress"),
+            "bEndpointAddress"    / DescriptorField("Endpoint Address"),
             "bmAttributes"        / DescriptorField("Attributes"),
             "wMaxPacketSize"      / DescriptorField("Maximum Packet Size"),
             "bInterval"           / DescriptorField("Polling interval"),
@@ -323,10 +378,127 @@ class GetDeviceQualifierDescriptorRequest(GetDescriptorRequest):
 
 class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
 
+    # Specialized descriptor information -- either these two fields should be overridden,
+    # or matches_class_specifics should be,
+    CLASS_NUMBER       = -1
+    DESCRIPTOR_SUBTYPE = -1
+
+    # Generic descriptor information.
     DESCRIPTOR_NAME = "class-specific"
     BINARY_FORMAT = DescriptorFormat(
             "bLength"             / DescriptorField("Length"),
             "bDescriptorType"     / DescriptorNumber(0x24),
             "bDescriptorSubtype"  / DescriptorField("Descriptor Subtype"),
-            "data"                / construct.Bytes(this.bLength)
+            "Data"                / construct.Bytes(this.bLength)
     )
+
+
+    @classmethod
+    def matches_class_specifics(cls, usb_class, subclass, protocol, subtype, is_interface):
+        """
+        Determines whether the given class handles the given class/subclass/protocol and
+        descriptor subtype. Should be overridden in subordinate classes if CLASS_NUMBER
+        and DESCRIPTOR_SUBTYPE aren't.
+        """
+
+        # Default implementation.
+        return (usb_class == cls.CLASS_NUMBER) and (subtype == cls.DESCRIPTOR_SUBTYPE)
+
+
+    @classmethod
+    def find_specialized_descriptor(cls, data, interface_descriptor, subtype):
+        """
+        Finds any specialized ClassSpecificDescriptor request objects that correspond
+        to the current interface -or- to the device's class, and the descriptor subtype.
+        """
+
+        # FIXME: read the device class, and set the usb_class/subclass/protocol here;
+        # only defer to the interface descriptor if we have a composite device.
+        if not interface_descriptor:
+            return parsed
+        else:
+            usb_class = interface_descriptor['bInterfaceClass']
+            subclass  = interface_descriptor['bInterfaceSubclass']
+            protocol  = interface_descriptor['bInterfaceProtocol']
+            is_device = False
+
+        # Search all of our subclasses.
+        for subclass in cls.__subclasses__():
+            matches = subclass.matches_class_specifics(usb_class, subclass, protocol, subtype, is_device)
+            if matches:
+                return subclass
+
+        return None
+
+
+    @classmethod
+    def _add_subtype_names(cls, decoded, bytes_parsed, specialized_class):
+
+        decoded_descriptor_fields = list(decoded.keys())
+
+        # Update the second entry (the class type) to be class-specific.
+        if len(decoded_descriptor_fields) >= 2:
+            descriptor_type_row = decoded_descriptor_fields[1]
+            decoded[descriptor_type_row] = 'class-specific'
+
+        # Update the third entry (the subclass type) to feature the subclass name.
+        if len(decoded_descriptor_fields) >= 3:
+            descriptor_subtype_row  = decoded_descriptor_fields[2]
+            decoded[descriptor_subtype_row] = specialized_class.get_descriptor_name()
+
+        return decoded, bytes_parsed
+
+
+
+
+    @classmethod
+    def decode_as_specialized_descriptor(cls, data, use_pretty_names, parent, subordinate_number):
+
+        # If we don't have at least three bytes, we can't read the subtype. Abort.
+        if len(data) < 3:
+            return None
+
+        # Otherwise, the subtype is always stored in the third byte.
+        subtype_number = data[2]
+
+        # If we don't have a parent descriptor to work with, we can't figure out which class we belong to.
+        if not parent:
+            return None
+
+        # Find the interface associated with this descriptor.
+        interface_descriptor = parent.find_last_interface_descriptor(subordinate_number)
+
+        # If we have an interface descriptor, try to figure out a more appropriate class to parse this structure.
+        specialized_class = cls.find_specialized_descriptor(data, interface_descriptor, subtype_number)
+
+        # If we found a more specialized class, use it!
+        if specialized_class:
+            decoded = specialized_class.decode_data_as_descriptor(data, use_pretty_names, parent, subordinate_number)
+
+            # If we're using pretty names, add the more-specific subtype names.
+            if use_pretty_names:
+                decoded = cls._add_subtype_names(*decoded, specialized_class)
+
+            return decoded
+
+        return None
+
+
+
+    @classmethod
+    def decode_data_as_descriptor(cls, data, use_pretty_names=True, parent=None, subordinate_number=None):
+
+        import sys
+
+        # If we're being called from the GetClassSpecificDescriptor generic 'placeholder' class,
+        # try to specialize.
+        if cls == GetClassSpecificDescriptorRequest:
+            specialized = cls.decode_as_specialized_descriptor(data, use_pretty_names, parent, subordinate_number)
+
+            sys.stderr.write("decoding using specialized! {}\n".format(specialized))
+
+            if specialized:
+                return specialized
+
+        # Otherwise, pass this down the chain.
+        return super().decode_data_as_descriptor(data, use_pretty_names, parent)

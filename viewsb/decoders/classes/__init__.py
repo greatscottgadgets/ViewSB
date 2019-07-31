@@ -1,8 +1,6 @@
 from os.path import dirname, basename, isfile
 import glob
 
-from .classes import *
-
 # Autodetect all decoders in this directory, so they can be automatically
 # imported by 'from decoders import *'.
 modules = glob.glob(dirname(__file__)+"/*.py")

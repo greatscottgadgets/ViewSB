@@ -12,7 +12,7 @@ from .packet import ViewSBPacket
 class DescriptorFormat(construct.Struct):
 
     @staticmethod
-    def _to_detail_dictionary(descriptor):
+    def _to_detail_dictionary(descriptor, use_pretty_names=True):
         result = {}
 
         # Loop over every entry in our descriptor context, and try to get a
@@ -29,7 +29,7 @@ class DescriptorFormat(construct.Struct):
 
             # Try to apply any documentation on the given field rather than it's internal name.
             format_element = getattr(descriptor._format, key)
-            detail_key = format_element.docs if format_element.docs else key
+            detail_key = format_element.docs if (format_element.docs and use_pretty_names) else key
 
             # Finally, add the entry to our dict.
             result[detail_key] = value
@@ -67,7 +67,7 @@ class DescriptorNumber(construct.Const):
         super().__init__(const)
 
         # Finally, add a documentation string for the type.
-        self.docs = "Descriptor Type"
+        self.docs = "Descriptor type"
 
 
     def _parse(self, stream, context, path):
@@ -149,7 +149,7 @@ class DescriptorTransfer(ViewSBPacket):
 
     # Each descriptor should define a DescriptorFormat here.
     #
-    # The format is defined by setting BINARY_FORMAT = DescriptorFormat(...). 
+    # The format is defined by setting BINARY_FORMAT = DescriptorFormat(...).
     # The DescriptorFormat initializer takes the same arguments as construct.Struct;
     # it's intended to be a thin wrapper around those objects.
     BINARY_FORMAT = DescriptorFormat(
@@ -160,13 +160,20 @@ class DescriptorTransfer(ViewSBPacket):
 
     @classmethod
     def get_descriptor_number(cls):
-        """ Returns the descriptor number for the given field. """
+        """ Returns the descriptor number for the given class. """
 
         for subconstruct in cls.BINARY_FORMAT.subcons:
             if hasattr(subconstruct, 'get_descriptor_number'):
                 return subconstruct.get_descriptor_number()
 
         raise ValueError("a descriptor format was defined with no DescriptorNumber!")
+
+
+    @classmethod
+    def get_descriptor_name(cls, data=None, parent=None):
+        """ Returns the descriptor name for the given class. """
+
+        return cls.DESCRIPTOR_NAME
 
 
     @classmethod
@@ -210,8 +217,8 @@ class DescriptorTransfer(ViewSBPacket):
 
 
     @classmethod
-    def decode_data_as_descriptor(cls, data, use_pretty_names=True):
-        """ 
+    def decode_data_as_descriptor(cls, data, use_pretty_names=True, parent=None, subordinate_number=0):
+        """
         Decodes the given data as this descriptor; and returns a dictionary of fields,
         and the total number of bytes parsed.
         """
@@ -219,9 +226,9 @@ class DescriptorTransfer(ViewSBPacket):
         if not data:
             return None, 0
 
-        # FIXME: do we want to do this?
+        # The descriptor's length is always the first element of the descriptor; but truncate
+        # if we don't have a whole one.
         descriptor_length = data[0]
-
         if len(data) < descriptor_length:
             descriptor_length = len(data)
 
@@ -229,18 +236,19 @@ class DescriptorTransfer(ViewSBPacket):
         # This gives us an object that has a description of the decoded descriptor data.
         # Say that five times fast.
 
-        # FIXME: memoize this!
+        # FIXME: memoize this?
         parsed_data = cls.BINARY_FORMAT.parse(data)
 
         # If we don't want to prepare the descriptor for display, return it directly.
         if not use_pretty_names:
-            return parsed_data, descriptor_length
+            return parsed_data._to_detail_dictionary(use_pretty_names=False), descriptor_length
 
         if hasattr(parsed_data, 'bDescriptorType') and cls.DESCRIPTOR_NAME:
             parsed_data.bDescriptorType = "{}".format(cls.DESCRIPTOR_NAME)
 
         # Convert that to a dictionary that represents a table.
         return parsed_data._to_detail_dictionary(), descriptor_length
+
 
 
     def get_decoded_descriptor(self, data=None, use_pretty_names=True):
@@ -252,9 +260,9 @@ class DescriptorTransfer(ViewSBPacket):
         return self.decode_data_as_descriptor(data, use_pretty_names)
 
 
-    def handle_data_remaining_after_decode(self, data):
+    def handle_data_remaining_after_decode(self, data, subordinate_number):
         """ Called if data is remaining after our decode. If data remains after this call, this
-        method will be called again, until there's no data or we return None for the 
+        method will be called again, until there's no data or we return None for the
         extracted table-or-string.
 
         Args:
@@ -262,18 +270,19 @@ class DescriptorTransfer(ViewSBPacket):
                     fetching detail fields.
 
         Returns:
-            (description, table_or_string, bytes_parsed) -- A 3-tuple including
-            a description of the structure parsed, the resultant decoder table
-            and the number of bytes parsed.
+            (description, table_or_string, raw_dictionary, bytes_parsed) -- A 5-tuple including
+            a description of the structure parsed, the resultant decoder table for printing, a raw
+            dictionary-like object mapping decoder fields to raw values, and the number of bytes parsed.
         """
-        return (None, None, 0)
+        return (None, None, None, 0)
 
 
-    def get_detail_fields(self):
-        """ Gets all of the detail fields for a given descriptor. """
+
+    def parse_with_subordinates(self):
+        """ Parses the given descriptor object, along with any subordinate descriptors attached, if appropriate. """
 
         if not self.BINARY_FORMAT:
-            return super().get_detail_fields()
+            return
 
         data = self.get_raw_data()
 
@@ -283,30 +292,59 @@ class DescriptorTransfer(ViewSBPacket):
         # Read the expected length out of the descriptor before we do any parsing.
         expected_length = data[0]
 
-        # Start off with a table list containing the decoded parent descriptor.
+        # Decode our own descriptor.
         table_or_string, bytes_parsed = self.get_decoded_descriptor(data)
         incomplete = "incomplete " if (expected_length > bytes_parsed) else ""
-        table_list = [("{}{} descriptor".format(incomplete, self.DESCRIPTOR_NAME), table_or_string)]
+
+        # Store that descriptor any create empty lists of subordinates.
+        self.parsed = table_or_string
+        self.subordinates = []
 
         # While we are still getting descriptors, try to handle any left-over data.
         while table_or_string:
+
+            # Keep track of our position in the subordinate array.
+            subordinate_number = len(self.subordinates)
 
             # Clip off any data parsed.
             data = data[bytes_parsed:]
 
             # Call our "data remaining" callback.
-            description, table_or_string, bytes_parsed = self.handle_data_remaining_after_decode(data)
+            description, table_or_string, raw, bytes_parsed = \
+                self.handle_data_remaining_after_decode(data, subordinate_number)
 
             #If we were able to parse more from the remaining data, return it.
             if table_or_string:
-                table_list.append((description, table_or_string))
+
+                self.subordinates.append({
+                    'description': description,
+                    'decoded': table_or_string,
+                    'raw':     raw,
+                })
 
 
+
+    def get_detail_fields(self):
+        """ Gets all of the detail fields for a given descriptor. """
+
+        if not self.BINARY_FORMAT:
+            return super().get_detail_fields()
+
+        # If we don't have a parsed version of this class, try to parse it.
+        if not hasattr(self, 'parsed'):
+            self.parse_with_subordinates()
+
+        # If we still don't have a parsed version, we have nothing to display. Abort.
+        if not hasattr(self, 'parsed'):
+            return None
+
+        # Otherwise, create a list of descriptor tables.
+        table_list = [(self.DESCRIPTOR_NAME, self.parsed)]
+
+        # Convert our lists of subordinates and descriptions into entires in our list...
+        for subordinate in self.subordinates:
+            table_list.append((subordinate['description'], subordinate['decoded']))
+
+        # ... and return the list.
         return table_list
-
-
-
-
-
-
 

@@ -30,9 +30,6 @@ try:
             # Store a reference to our parent backend, so we can submit USB data via it.
             self.backend = backend
 
-            # Mark ourselves as having no packet pending.
-            self.pending_packet = None
-
             # Store the callback we use to determine if we should suppress packets.
             self.suppress_packet_callback = suppress_packet_callback
 
@@ -40,15 +37,6 @@ try:
         def _emit_packet(self, packet):
             """ Emits a packet to the main decoder thread for analysis. """
             self.backend.emit_packet(packet)
-
-
-        def _should_be_suppressed(self, packet):
-            """ Returns true iff the given packet should be suppressed, e.g. because of a user-provided condition. """
-
-            if callable(self.suppress_packet_callback):
-                return self.suppress_packet_callback(packet)
-            else:
-                return False
 
 
         def handle_usb_packet(self, timestamp, raw_packet, flags):
@@ -59,10 +47,7 @@ try:
                 return
 
             packet = USBPacket.from_raw_packet(raw_packet, timestamp=timestamp)
-
-            # Assuming the packet isn't one we're suppressing, emit it to our stack.
-            if not self._should_be_suppressed(packet):
-                self._emit_packet(packet)
+            self._emit_packet(packet)
 
 
 except (ImportError, ModuleNotFoundError) as e:
@@ -79,6 +64,7 @@ class PhyWhispererBackend(ViewSBBackend):
     MAX_CAPTURE_SIZE = 8188
     MAX_PATTERN_SIZE = 64
 
+    from phywhisperer import usb as pw
 
     @staticmethod
     def reason_to_be_disabled():
@@ -104,7 +90,7 @@ class PhyWhispererBackend(ViewSBBackend):
         parser.add_argument('--addpattern', action='store_true',
                 help="add pattern to captured data")
         parser.add_argument('--burst', action='store_true',
-                help="add pattern to captured data")
+                help="read captured data in a single burst")
         args, leftover_args = parser.parse_known_args()
 
 

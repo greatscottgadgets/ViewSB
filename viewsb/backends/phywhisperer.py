@@ -64,7 +64,6 @@ class PhyWhispererBackend(ViewSBBackend):
     MAX_CAPTURE_SIZE = 8188
     MAX_PATTERN_SIZE = 64
 
-    from phywhisperer import usb as pw
 
     @staticmethod
     def reason_to_be_disabled():
@@ -81,7 +80,7 @@ class PhyWhispererBackend(ViewSBBackend):
 
         # Parse user input and try to extract our class options.
         parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
-        parser.add_argument('--size', type=int, default=cls.MAX_CAPTURE_SIZE, 
+        parser.add_argument('--size', type=int, default=cls.MAX_CAPTURE_SIZE,
                 help="capture size (0 = unlimited")
         parser.add_argument('--pattern', type=int, nargs='+', default=[0], choices=range(0,256),
                 help="capture pattern (list of ints)")
@@ -124,6 +123,8 @@ class PhyWhispererBackend(ViewSBBackend):
                 which packets should be dropped before being submitted to the
                 analysis queue.
         """
+
+        from phywhisperer import usb as pw
 
         # Create a new PhyWhisperer device; but don't yet try to connect to it.
         self.pw_device = pw.Usb(viewsb=True)

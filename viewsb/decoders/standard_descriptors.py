@@ -147,8 +147,13 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
         for index, subordinate in enumerate(self.subordinates):
 
             # ... skipping anything that's not of the correct type.
-            if subordinate['raw']['bDescriptorType'] != descriptor_number:
-                continue
+            try:
+                if subordinate['raw']['bDescriptorType'] != descriptor_number:
+                    continue
+
+            # If we can't parse this as a descriptor, return None.
+            except TypeError:
+                return None
 
             # If we don't occur before provided subordinate number, we're finished searching.
             if subordinate_number and index >= subordinate_number:
@@ -415,7 +420,7 @@ class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
         # FIXME: read the device class, and set the usb_class/subclass/protocol here;
         # only defer to the interface descriptor if we have a composite device.
         if not interface_descriptor:
-            return parsed
+            return None
         else:
             usb_class = interface_descriptor['bInterfaceClass']
             subclass  = interface_descriptor['bInterfaceSubclass']
@@ -494,8 +499,6 @@ class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
         # try to specialize.
         if cls == GetClassSpecificDescriptorRequest:
             specialized = cls.decode_as_specialized_descriptor(data, use_pretty_names, parent, subordinate_number)
-
-            sys.stderr.write("decoding using specialized! {}\n".format(specialized))
 
             if specialized:
                 return specialized

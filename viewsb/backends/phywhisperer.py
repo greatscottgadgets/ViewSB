@@ -81,7 +81,7 @@ class PhyWhispererBackend(ViewSBBackend):
         # Parse user input and try to extract our class options.
         parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
         parser.add_argument('--size', type=int, default=cls.MAX_CAPTURE_SIZE,
-                help="capture size (0 = unlimited")
+                help="capture size (0 = unlimited)")
         parser.add_argument('--pattern', type=int, nargs='+', default=[0], choices=range(0,256),
                 help="capture pattern (list of ints)")
         parser.add_argument('--mask', type=int, nargs='+', default=[0], choices=range(0,256),
@@ -90,11 +90,13 @@ class PhyWhispererBackend(ViewSBBackend):
                 help="add pattern to captured data")
         parser.add_argument('--burst', action='store_true',
                 help="read captured data in a single burst")
+        parser.add_argument('--timeout', type=int, default=5,
+                help="capture timeout in seconds")
         args, leftover_args = parser.parse_known_args()
 
 
-        if args.size not in range(0,cls.MAX_CAPTURE_SIZE+1):
-            sys.stderr.write("size must be between 0 and %d (inclusive)\n" % cls.MAX_CAPTURE_SIZE)
+        if args.burst and args.size not in range(1,cls.MAX_CAPTURE_SIZE+1):
+            sys.stderr.write("size must be between 1 and %d (inclusive) when using burst mode\n" % cls.MAX_CAPTURE_SIZE)
             sys.exit(errno.EINVAL)
 
         if len(args.pattern) != len(args.mask):
@@ -106,10 +108,10 @@ class PhyWhispererBackend(ViewSBBackend):
             sys.exit(errno.EINVAL)
 
         #  Return the class and leftover arguments.
-        return (args.size, args.burst, args.pattern, args.mask, args.addpattern), leftover_args
+        return (args.size, args.burst, args.pattern, args.mask, args.addpattern, args.timeout), leftover_args
 
 
-    def __init__(self, size, burst, pattern, mask, addpattern, suppress_packet_callback=None):
+    def __init__(self, size, burst, pattern, mask, addpattern, timeout, suppress_packet_callback=None):
         """ Creates a new PhyWhisperer capture backend.
 
         Args:
@@ -117,8 +119,9 @@ class PhyWhispererBackend(ViewSBBackend):
             burst: read from capture FIFO in a single burst
             pattern: pattern match bytes
             mask: mask for pattern match bytes
-            addpattern: the pattern match aren't captured; use this option to artificially
+            addpattern: the pattern match bytes aren't captured; use this option to artificially
                 insert them into the capture data
+            timeout: capture timeout in seconds
             suppress_packet_callback -- A callback function that determines
                 which packets should be dropped before being submitted to the
                 analysis queue.
@@ -137,6 +140,7 @@ class PhyWhispererBackend(ViewSBBackend):
         self.burst = burst
         self.pattern = pattern
         self.mask = mask
+        self.timeout = timeout
 
 
     def run(self):
@@ -148,7 +152,7 @@ class PhyWhispererBackend(ViewSBBackend):
 
         try:
             halt_callback = lambda _ : self.termination_event.is_set()
-            self.pw_device.run_capture(size=self.size, burst=self.burst, pattern=self.pattern, mask=self.mask, halt_callback=halt_callback)
+            self.pw_device.run_capture(size=self.size, burst=self.burst, pattern=self.pattern, mask=self.mask, timeout=self.timeout, halt_callback=halt_callback)
 
         finally:
             self.pw_device.close()

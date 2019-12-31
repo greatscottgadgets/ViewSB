@@ -2,3 +2,4 @@ construct
 bitstruct
 tableprint
 urwid
+pkgconfig

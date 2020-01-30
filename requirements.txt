@@ -3,3 +3,4 @@ bitstruct
 tableprint
 urwid
 pkgconfig
+crcmod

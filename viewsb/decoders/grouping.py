@@ -399,9 +399,15 @@ class USBTransferGrouper(ViewSBDecoder):
     def packet_concludes_transfer(self, packet):
         """ Returns true iff a given packet must start a transfer. """
 
-        pipe = self._pipe_identifier_for_packet(packet)
+        # XXX: Typically we'd consider a transfer complete if we see a short packet.
+        # To know if we have a short packet, we need the maximum packet size of the endpoint.
+        # Since we don't have that right now, just check if the size is not a multiple of any
+        # of the maximum packet sizes.
+        if packet.data:
+            if len(packet.data) == 0 or (len(packet.data) % 8) != 0:
+                return True
 
-        # FIXME: short packet detection, here
+        pipe = self._pipe_identifier_for_packet(packet)
 
         # If this is a setup token packet, it always ends the transfer.
         # (Setup packets always exist by themselves.)
@@ -409,6 +415,23 @@ class USBTransferGrouper(ViewSBDecoder):
             return True
 
         return False
+
+
+    def packet_seems_discontinuous(self, packet):
+        """ Return True iff there's been sufficient delay since the previous packet. """
+
+        pipe = self._pipe_identifier_for_packet(packet)
+
+        if not self.packets_captured[pipe]:
+            return False
+
+        last_packet = self.packets_captured[pipe][-1]
+
+        # If more than 10 milliseconds have passed since the last packet,
+        # heuristically start a new transfer.
+        if (packet.timestamp - last_packet.timestamp) > 10e3:
+            return True
+
 
     def enqueue_packet(self, pipe, packet):
         """ Enqueues a given packet on the relevant pipe. """
@@ -420,7 +443,7 @@ class USBTransferGrouper(ViewSBDecoder):
         pipe = self._pipe_identifier_for_packet(packet)
 
         # If this packet starts a transfer, flush the pipe first.
-        if self.packet_starts_new_transfer(packet):
+        if self.packet_starts_new_transfer(packet) or self.packet_seems_discontinuous(packet):
             self.flush_queued_packets(pipe)
 
         self.enqueue_packet(pipe, packet)

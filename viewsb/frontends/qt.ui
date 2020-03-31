@@ -97,6 +97,16 @@ This file is part of ViewSB
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <column>
+           <property name="text">
+            <string>property</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>value</string>
+           </property>
+          </column>
          </widget>
         </widget>
        </item>

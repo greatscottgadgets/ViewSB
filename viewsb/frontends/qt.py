@@ -11,10 +11,10 @@ import multiprocessing
 from datetime import datetime
 
 try:
-    import PySide2
     from PySide2 import QtWidgets
     from PySide2.QtWidgets import QApplication, QWidget, QTreeWidget, QTreeWidgetItem
     from PySide2 import QtCore
+    from PySide2.QtCore import QSize
     from PySide2.QtUiTools import QUiLoader
 except (ImportError, ModuleNotFoundError):
     pass
@@ -72,6 +72,22 @@ def recursive_packet_walk(viewsb_packet, packet_children_list):
         packet_children_list.append(sub_item)
 
 
+class ViewSBQTreeWidget(QTreeWidget):
+    """
+    QDockWidgets don't let you set an initial size; instead, they work off the sizeHint() of their child.
+    So, here's a QTreeWidget whose sizeHint() returns its dynamic property initialSize().
+    """
+
+    # Override
+    def sizeHint(self):
+
+        initial_size = self.property('initialSize')
+
+        if initial_size is not None:
+            return initial_size
+        else:
+            return QSize(0, 0)
+
 
 class QtFrontend(ViewSBFrontend):
     """ Qt Frontend that consumes packets for display. """
@@ -95,7 +111,7 @@ class QtFrontend(ViewSBFrontend):
 
     @staticmethod
     def reason_to_be_disabled():
-        # If we weren't able to import PySide2, disable the library.
+        # If we weren't able to import PySide2, disable this frontend.
         if 'QWidget' not in globals():
             return "PySide2 (Qt library) not available"
 
@@ -152,6 +168,7 @@ class QtFrontend(ViewSBFrontend):
         self.ui_file = QtCore.QFile(os.path.dirname(os.path.realpath(__file__)) + '/qt.ui')
 
         self.loader = QUiLoader()
+        self.loader.registerCustomWidget(ViewSBQTreeWidget)
         self.window = self.loader.load(self.ui_file)
 
         # Swap columns 0 and 5 to put the expand arrow on the summary column.
@@ -197,11 +214,7 @@ class QtFrontend(ViewSBFrontend):
             pass
 
         finally:
-
-            # In case the queue was empty in the first place and didn't have anything ready.
-            if len(packet_list) > 0:
-
-                self.add_packets(packet_list)
+            self.add_packets(packet_list)
 
 
     def add_packets(self, viewsb_packets):

@@ -30,111 +30,83 @@ This file is part of ViewSB
     <property name="verticalSpacing">
      <number>6</number>
     </property>
-    <item row="0" column="0">
-     <widget class="QWidget" name="widget" native="true">
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="spacing">
-        <number>6</number>
+    <item row="1" column="1">
+     <widget class="QTreeWidget" name="usb_tree_widget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>2</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="alternatingRowColors">
+       <bool>true</bool>
+      </property>
+      <property name="sortingEnabled">
+       <bool>false</bool>
+      </property>
+      <property name="columnCount">
+       <number>8</number>
+      </property>
+      <column>
+       <property name="text">
+        <string>summary</string>
        </property>
-       <property name="leftMargin">
-        <number>0</number>
+      </column>
+      <column>
+       <property name="text">
+        <string>dev</string>
        </property>
-       <property name="topMargin">
-        <number>0</number>
+      </column>
+      <column>
+       <property name="text">
+        <string>ep</string>
        </property>
-       <property name="rightMargin">
-        <number>0</number>
+      </column>
+      <column>
+       <property name="text">
+        <string>dir</string>
        </property>
-       <property name="bottomMargin">
-        <number>0</number>
+      </column>
+      <column>
+       <property name="text">
+        <string>length</string>
        </property>
-       <item>
-        <widget class="QSplitter" name="splitter">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <widget class="QTreeWidget" name="usb_tree_widget">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>2</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="layoutDirection">
-           <enum>Qt::LeftToRight</enum>
-          </property>
-          <property name="alternatingRowColors">
-           <bool>true</bool>
-          </property>
-          <property name="sortingEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="columnCount">
-           <number>8</number>
-          </property>
-          <column>
-           <property name="text">
-            <string>summary</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>dev</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>ep</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>dir</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>length</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>timestamp</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>status</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>data</string>
-           </property>
-          </column>
-         </widget>
-         <widget class="QTreeWidget" name="usb_details_tree_widget">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>1</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <column>
-           <property name="text">
-            <string>property</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>value</string>
-           </property>
-          </column>
-         </widget>
-        </widget>
-       </item>
-      </layout>
+      </column>
+      <column>
+       <property name="text">
+        <string>timestamp</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>status</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>data</string>
+       </property>
+      </column>
      </widget>
+    </item>
+    <item row="0" column="1">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
     </item>
    </layout>
   </widget>
@@ -149,7 +121,46 @@ This file is part of ViewSB
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="usb_details_dock">
+   <property name="windowTitle">
+    <string>Details</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="usb_details_dock_contents">
+    <layout class="QGridLayout">
+     <item row="0" column="0">
+      <widget class="ViewSBQTreeWidget" name="usb_details_tree_widget">
+       <property name="initialSize" stdset="0">
+        <size>
+         <width>400</width>
+         <height>0</height>
+        </size>
+       </property>
+       <column>
+        <property name="text">
+         <string>property</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>value</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ViewSBQTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>qt.py</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

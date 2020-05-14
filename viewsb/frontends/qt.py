@@ -10,36 +10,35 @@ import multiprocessing
 
 from datetime import datetime
 
+from ..frontend import ViewSBFrontend
+from ..packet import ViewSBPacket
+
 try:
     from PySide2 import QtWidgets
     from PySide2.QtWidgets import QApplication, QWidget, QTreeWidget, QTreeWidgetItem
     from PySide2 import QtCore
     from PySide2.QtCore import QSize
     from PySide2.QtUiTools import QUiLoader
+
+
+    class ViewSBQTreeWidget(QTreeWidget):
+        """
+        QDockWidgets don't let you set an initial size; instead, they work off the sizeHint() of their child.
+        So, here's a QTreeWidget whose sizeHint() returns its dynamic property initialSize.
+        """
+
+        # Override
+        def sizeHint(self):
+
+            initial_size = self.property('initialSize')
+
+            if initial_size is not None:
+                return initial_size
+            else:
+                return QSize(0, 0)
+
 except (ImportError, ModuleNotFoundError):
     pass
-
-
-from ..frontend import ViewSBFrontend
-from ..packet import ViewSBPacket
-
-
-
-class ViewSBQTreeWidget(QTreeWidget):
-    """
-    QDockWidgets don't let you set an initial size; instead, they work off the sizeHint() of their child.
-    So, here's a QTreeWidget whose sizeHint() returns its dynamic property initialSize.
-    """
-
-    # Override
-    def sizeHint(self):
-
-        initial_size = self.property('initialSize')
-
-        if initial_size is not None:
-            return initial_size
-        else:
-            return QSize(0, 0)
 
 
 class QtFrontend(ViewSBFrontend):

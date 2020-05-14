@@ -24,58 +24,11 @@ from ..frontend import ViewSBFrontend
 from ..packet import ViewSBPacket
 
 
-def stringify_list(l):
-    """ Tiny helper to cast every item in a list to a string, since Qt only likes displaying strings. """
-    return [str(x) for x in l]
-
-
-def get_packet_string_array(viewsb_packet):
-    """ Tiny helper to return and stringify the common fields used for the columns of tree items. """
-
-    direction = viewsb_packet.direction.name if viewsb_packet.direction is not None else ''
-
-    length = len(viewsb_packet.data) if viewsb_packet.data is not None else ''
-
-    return stringify_list([
-        viewsb_packet.summarize(),
-        viewsb_packet.device_address,
-        viewsb_packet.endpoint_number,
-        direction,
-        length,
-        viewsb_packet.timestamp,
-        viewsb_packet.summarize_status(),
-        viewsb_packet.summarize_data()
-        ]) + [viewsb_packet]
-
-
-def recursive_packet_walk(viewsb_packet, packet_children_list):
-    """ Recursively walks packet subordinates, batching QTreeWidgetItem.addChildren as much as possible.
-
-    Args:
-        viewsb_packet        -- The top-level packet (as far as the caller's context is concerned).
-        packed_children_list -- List to be filled with `viewsb_packet`'s children as `QTreeWidgetItem`s.
-    """
-
-    packet_item = QTreeWidgetItem(get_packet_string_array(viewsb_packet))
-
-    for sub_packet in viewsb_packet.subordinate_packets:
-
-        sub_item = QTreeWidgetItem(get_packet_string_array(sub_packet))
-        sub_item.setData(0, QtCore.Qt.UserRole, sub_packet)
-
-        # Recursively populate `sub_item`'s children.
-        children = []
-        recursive_packet_walk(sub_packet, children)
-        sub_item.addChildren(children)
-
-        # Add our subordinate (and it's entire hierarchy) as a child of our parent.
-        packet_children_list.append(sub_item)
-
 
 class ViewSBQTreeWidget(QTreeWidget):
     """
     QDockWidgets don't let you set an initial size; instead, they work off the sizeHint() of their child.
-    So, here's a QTreeWidget whose sizeHint() returns its dynamic property initialSize().
+    So, here's a QTreeWidget whose sizeHint() returns its dynamic property initialSize.
     """
 
     # Override
@@ -93,7 +46,7 @@ class QtFrontend(ViewSBFrontend):
     """ Qt Frontend that consumes packets for display. """
 
     UI_NAME = 'qt'
-    UI_DESCRIPTION = 'proof-of-concept, unstable GUI in Qt'
+    UI_DESCRIPTION = 'unstable GUI in Qt'
 
 
     # So, Qt's tree widgets require that column 0 have the expand arrow, but you _can_ change
@@ -157,6 +110,66 @@ class QtFrontend(ViewSBFrontend):
 
         self.window.usb_details_tree_widget.resizeColumnToContents(0)
         self.window.usb_details_tree_widget.resizeColumnToContents(1)
+
+
+    def _get_item_for_packet(self, viewsb_packet):
+        """ Creates a QTreeWidgetItem for a given ViewSBPacket.
+
+        Args:
+            viewsb_packet -- The ViewSBPacket to create the QTreeWidgetItem from.
+
+        Returns a QTreeWidgetItem.
+        """
+
+        stringify_list = lambda l: [str(x) for x in l]
+
+        def get_packet_string_array(viewsb_packet):
+            """ Tiny helper to return and stringify the common fields used for the columns of tree items. """
+
+            direction = viewsb_packet.direction.name if viewsb_packet.direction is not None else ''
+
+            length = len(viewsb_packet.data) if viewsb_packet.data is not None else ''
+
+            return stringify_list([
+                viewsb_packet.summarize(),
+                viewsb_packet.device_address,
+                viewsb_packet.endpoint_number,
+                direction,
+                length,
+                viewsb_packet.timestamp,
+                viewsb_packet.summarize_status(),
+                viewsb_packet.summarize_data()
+                ]) + [viewsb_packet]
+
+
+        item = QTreeWidgetItem(get_packet_string_array(viewsb_packet))
+
+        # Give the item a reference to the original packet object.
+        item.setData(0, QtCore.Qt.UserRole, viewsb_packet)
+
+        return item
+
+
+    def _recursively_walk_packet(self, viewsb_packet):
+        """ Recursively walks packet subordinates, batching QTreeWidgetItem.addChildren as much as possible.
+
+        Args:
+            viewsb_packet -- The top-level packet (as far as the caller's context is concerned).
+        """
+
+        packet_item = self._get_item_for_packet(viewsb_packet)
+
+        packet_children_list = []
+
+        for sub_packet in viewsb_packet.subordinate_packets:
+
+            # Create the item for this packet, and recursively fill its children.
+            packet_children_list.append(self._recursively_walk_packet(sub_packet))
+
+
+        packet_item.addChildren(packet_children_list)
+
+        return packet_item
 
 
     def __init__(self):
@@ -223,16 +236,15 @@ class QtFrontend(ViewSBFrontend):
         We're in the UI thread; every bit of overhead counts, so let's batch as much as possible.
         """
 
+        top_level_items_list = []
+
         for viewsb_packet in viewsb_packets:
-            top_level_item = QTreeWidgetItem(get_packet_string_array(viewsb_packet))
-            top_level_item.setData(0, QtCore.Qt.UserRole, viewsb_packet)
 
-            list_of_children = []
-            recursive_packet_walk(viewsb_packet, list_of_children)
+            # Create the item for this packet, and recursively fill its children.
+            top_level_items_list.append(self._recursively_walk_packet(viewsb_packet))
 
-            top_level_item.addChildren(list_of_children)
 
-            self.window.usb_tree_widget.addTopLevelItem(top_level_item)
+        self.window.usb_tree_widget.addTopLevelItems(top_level_items_list)
 
 
     def tree_current_item_changed(self, current_item, previous_item):

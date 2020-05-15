@@ -9,10 +9,10 @@ This file is part of ViewSB
 
 from datetime import datetime
 
+from usb_protocol.types import USBPacketID, USBDirection
 
 from ..backend import ViewSBBackend
 from ..packet import USBControlTransfer, USBSetupTransaction, USBTransaction
-from ..usb_types import USBPacketID, USBDirection
 
 try:
     from facedancer import FacedancerUSBApp

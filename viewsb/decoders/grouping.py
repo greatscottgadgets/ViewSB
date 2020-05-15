@@ -10,12 +10,14 @@ This file is part of ViewSB
 import collections
 from construct import *
 
+from usb_protocol.types import USBPacketID
+
 from ..decoder import ViewSBDecoder, UnhandledPacket
 from ..packet import USBPacket, MalformedPacket, USBStartOfFrame, USBStartOfFrameCollection, \
     USBTokenPacket, USBHandshakePacket, USBDataPacket, \
     USBTransaction, USBSetupTransaction, USBDataTransaction, \
     USBSetupTransfer, USBDataTransfer, USBStatusTransfer, USBControlTransfer
-from ..usb_types import USBPacketID
+
 
 
 class USBPacketSpecializer(ViewSBDecoder):

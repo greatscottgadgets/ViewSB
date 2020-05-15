@@ -9,12 +9,13 @@ import errno
 import struct
 import argparse
 
-from .. import usb_types
+import usb_protocol
+
+from usb_protocol.types import USBDirection, USBRequestRecipient, USBRequestType, USBPacketID, USBTransferType
 
 from ..backend import ViewSBBackend, FileBackend
 from ..packet import USBPacket, USBSetupTransfer, USBDataTransfer, USBStatusTransfer, USBControlTransfer, \
      USBBulkTransfer, USBInterruptTransfer, USBIsochronousTransfer, USBTransferFragment
-from ..usb_types import USBDirection, USBRequestRecipient, USBRequestType, USBPacketID, USBTransferType
 
 from enum import Enum
 
@@ -107,7 +108,7 @@ class USBMonEvent:
         properties['transfer_type']   = TransferType(properties['transfer_type'])
         properties['event_type']      = EventType(properties['event_type'])
         properties['direction']       = USBDirection.from_endpoint_address(properties['endpoint_address'])
-        properties['endpoint_number'] = usb_types.endpoint_number_from_address(properties['endpoint_address'])
+        properties['endpoint_number'] = usb_protocol.types.endpoint_number_from_address(properties['endpoint_address'])
 
         # Finally, create the relevant event.
         return cls(**properties)

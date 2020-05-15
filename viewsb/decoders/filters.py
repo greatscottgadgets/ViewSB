@@ -11,9 +11,11 @@ This file is part of ViewSB
 import bitstruct
 import collections
 
+from usb_protocol.types import USBPacketID
+
 from ..decoder import ViewSBDecoder, UnhandledPacket
 from ..packet import USBPacket
-from ..usb_types import USBPacketID
+
 
 class USBPacketFilter:
     """ Mix-in for filters that want to filter a given packet. """

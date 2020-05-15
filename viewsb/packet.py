@@ -9,12 +9,12 @@ This file is part of ViewSB
 
 import struct
 import binascii
-
 import enum
-from enum import Flag, auto
-from .usb_types import USBDirection, USBRequestType, USBRequestRecipient, USBPacketID
 
+from enum import Flag, auto
 from construct import *
+
+from usb_protocol.types import USBDirection, USBRequestType, USBRequestRecipient, USBPacketID
 
 
 # XXX Temporary hack for __repr__.

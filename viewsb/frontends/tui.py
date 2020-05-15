@@ -11,8 +11,10 @@ import string
 import collections
 
 from urwid.widget import Widget
+
+from usb_protocol.types import USBDirection
+
 from ..frontend import ViewSBFrontend
-from ..usb_types import USBDirection
 
 
 class TUIFrontend(ViewSBFrontend):

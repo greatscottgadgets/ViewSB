@@ -86,7 +86,7 @@ class QtFrontend(ViewSBFrontend):
             # The usual case: a str:str dict.
             if isinstance(fields, dict):
                 for key, value in fields.items():
-                    children.append(QTreeWidgetItem(stringify_list([key, value])))
+                    children.append(QTreeWidgetItem([str(key), str(value)]))
 
             # Sometimes it'll just be a 1-column list.
             elif isinstance(fields, list):

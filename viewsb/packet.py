@@ -483,7 +483,7 @@ class USBTransaction(ViewSBPacket):
     # TODO: representation
 
     def summarize(self):
-        return "{} packet".format(self.token.name)
+        return "{} transaction".format(self.token.name)
 
     def summarize_status(self):
         if self.handshake:

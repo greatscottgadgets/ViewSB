@@ -112,7 +112,7 @@ class ViewSBPacket:
         Returns: the DATA_FORMAT parser results, in case we need to capture any left-over fields
         """
 
-        #Parse the data into fields.
+        # Parse the data into fields.
         parsed = self.DATA_FORMAT.parse(self.data)
 
         # Iterate over each of the class's fields, checking if we can pull data
@@ -299,7 +299,7 @@ class ViewSBPacket:
             data_summary = ""
 
         # Quick stab at some nice formatting for console output.
-        description =  "<{}: d{}:e{} {}{} {}>".format(
+        description = "<{}: d{}:e{} {}{} {}>".format(
             type(self).__name__, self.device_address, self.endpoint_number,
             self.summarize(), data_summary, self.summarize_status())
 
@@ -338,7 +338,6 @@ class USBPacket(ViewSBPacket):
             return "zero-length packet"
         else:
             return "{} packet".format(self.pid.summarize())
-
 
 
     @classmethod
@@ -385,14 +384,8 @@ class USBTokenPacket(USBPacket):
 
     def validate(self):
         #parsed = self.parse_data()
-
-        self.endpoint_number = (self.data[1] & 0x7) << 1 | self.data[0] >> 7
-        self.device_address  = self.data[1] & 0x7F
-
-        # Fill in our direction from our PID.
-        self.direction = self.pid.direction()
-
         # TODO: validate crc5
+        pass
 
     def generate_summary(self):
             return "{} token".format(self.pid.summarize())

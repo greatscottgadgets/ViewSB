@@ -340,6 +340,17 @@ class USBPacket(ViewSBPacket):
             return "{} packet".format(self.pid.summarize())
 
 
+    def get_raw_data(self):
+        """
+        For transaction-level ViewSBPackets, this method normally returns the raw data in the data stage,
+        which is what a user is most likely interested in, but for raw USB packets and their specializations,
+        it'll return every field of the packet except for SYNC and EOP.
+        Since the fields vary with the kinds of packets, get_raw_data is implemented for those specializations,
+        and this method defintion is only here for documentation.
+        """
+        raise NotImplementedError("get_raw_data() should be implemented in specializations of packets.")
+
+
     @classmethod
     def from_raw_packet(cls, raw_packet, **fields):
         """ Create a new USBPacket object from a raw set of packet data. """
@@ -395,6 +406,11 @@ class USBTokenPacket(USBPacket):
                     self.device_address, self.endpoint_number, self.direction)
 
 
+    def get_raw_data(self):
+        # device_address, endpoint, and crc5 are included in self.data.
+        return b''.join([bytes([self.pid]), self.data])
+
+
 class USBDataPacket(USBPacket):
     """ Class representing a data packet. """
 
@@ -415,6 +431,8 @@ class USBDataPacket(USBPacket):
             return super().summarize_data()
 
 
+    def get_raw_data(self):
+        return b''.join([bytes([self.pid]), self.data, self.crc16])
 
 
 class USBHandshakePacket(USBPacket):
@@ -424,7 +442,8 @@ class USBHandshakePacket(USBPacket):
         return self.pid.summarize()
 
 
-
+    def get_raw_data(self):
+        return bytes(self.pid)
 
 
 class USBStatusTransfer(USBHandshakePacket):

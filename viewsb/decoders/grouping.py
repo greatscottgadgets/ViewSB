@@ -41,13 +41,21 @@ class USBPacketSpecializer(ViewSBDecoder):
     def _consume_token_packet(self, packet):
         """ Consumes a packet known to be a token packet. """
 
-        fields = packet.__dict__
+        fields = packet.__dict__.copy()
 
         # If our packet isn't the right length for a token, emit
         # a malformed packet.
         if len(packet.data) != self.TOKEN_PAYLOAD_LENGTH:
             self.emit_packet(MalformedPacket(**fields))
             return
+
+        # Extract the device address, endpoint number, and CRC5.
+        fields['device_address']  = fields['data'][0] & 0x7F
+        fields['endpoint_number'] = (fields['data'][1] & 0x07) << 1 | fields['data'][0] >> 7
+        fields['crc5']            = fields['data'][1] >> 3
+
+        # Fill direction from PID.
+        fields['direction'] = fields['pid'].direction()
 
         # Populate a USBTokenPacket with the relevant information...
         new_packet = USBTokenPacket(**fields)

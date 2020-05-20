@@ -112,7 +112,7 @@ class ViewSBPacket:
         Returns: the DATA_FORMAT parser results, in case we need to capture any left-over fields
         """
 
-        #Parse the data into fields.
+        # Parse the data into fields.
         parsed = self.DATA_FORMAT.parse(self.data)
 
         # Iterate over each of the class's fields, checking if we can pull data
@@ -299,7 +299,7 @@ class ViewSBPacket:
             data_summary = ""
 
         # Quick stab at some nice formatting for console output.
-        description =  "<{}: d{}:e{} {}{} {}>".format(
+        description = "<{}: d{}:e{} {}{} {}>".format(
             type(self).__name__, self.device_address, self.endpoint_number,
             self.summarize(), data_summary, self.summarize_status())
 
@@ -339,6 +339,16 @@ class USBPacket(ViewSBPacket):
         else:
             return "{} packet".format(self.pid.summarize())
 
+
+    def get_raw_data(self):
+        """
+        For transaction-level ViewSBPackets, this method normally returns the raw data in the data stage,
+        which is what a user is most likely interested in, but for raw USB packets and their specializations,
+        it'll return every field of the packet except for SYNC and EOP.
+        Since the fields vary with the kinds of packets, get_raw_data is implemented for those specializations,
+        and this method defintion is only here for documentation.
+        """
+        raise NotImplementedError("get_raw_data() should be implemented in specializations of packets.")
 
 
     @classmethod
@@ -385,14 +395,8 @@ class USBTokenPacket(USBPacket):
 
     def validate(self):
         #parsed = self.parse_data()
-
-        self.endpoint_number = (self.data[1] & 0x7) << 1 | self.data[0] >> 7
-        self.device_address  = self.data[1] & 0x7F
-
-        # Fill in our direction from our PID.
-        self.direction = self.pid.direction()
-
         # TODO: validate crc5
+        pass
 
     def generate_summary(self):
             return "{} token".format(self.pid.summarize())
@@ -400,6 +404,11 @@ class USBTokenPacket(USBPacket):
     def summarize_data(self):
             return "address={}, endpoint=0x{:02x}, direction={}".format(
                     self.device_address, self.endpoint_number, self.direction)
+
+
+    def get_raw_data(self):
+        # device_address, endpoint, and crc5 are included in self.data.
+        return b''.join([bytes([self.pid]), self.data])
 
 
 class USBDataPacket(USBPacket):
@@ -422,6 +431,8 @@ class USBDataPacket(USBPacket):
             return super().summarize_data()
 
 
+    def get_raw_data(self):
+        return b''.join([bytes([self.pid]), self.data, self.crc16])
 
 
 class USBHandshakePacket(USBPacket):
@@ -431,7 +442,8 @@ class USBHandshakePacket(USBPacket):
         return self.pid.summarize()
 
 
-
+    def get_raw_data(self):
+        return bytes(self.pid)
 
 
 class USBStatusTransfer(USBHandshakePacket):

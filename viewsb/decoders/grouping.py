@@ -435,9 +435,9 @@ class USBTransferGrouper(ViewSBDecoder):
 
         last_packet = self.packets_captured[pipe][-1]
 
-        # If more than 10 milliseconds have passed since the last packet,
+        # For non-control endpoints, if more than 10 milliseconds have passed since the last packet,
         # heuristically start a new transfer.
-        if (packet.timestamp - last_packet.timestamp) > 10e3:
+        if packet.endpoint_number != 0 and (packet.timestamp - last_packet.timestamp) > 10e3:
             return True
 
 

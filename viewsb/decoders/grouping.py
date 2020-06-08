@@ -411,7 +411,7 @@ class USBTransferGrouper(ViewSBDecoder):
         # To know if we have a short packet, we need the maximum packet size of the endpoint.
         # Since we don't have that right now, just check if the size is not a multiple of any
         # of the maximum packet sizes.
-        if packet.data:
+        if packet.data is not None:
             if len(packet.data) == 0 or (len(packet.data) % 8) != 0:
                 return True
 

@@ -7,6 +7,7 @@ This file is part of ViewSB
 """
 
 import queue
+import multiprocessing
 
 from .decoder import ViewSBDecoder
 from .decoders import *
@@ -36,6 +37,10 @@ class ViewSBAnalyzer:
                         ViewSB decoders are intended to produce sane results with all filters enabled, so this is likely
                         what you want.
         """
+
+        # The spawn method became the default on macOS in Python 3.8, but that crashes,
+        # so make it use the fork method.
+        multiprocessing.set_start_method('fork')
 
         # If decoders weren't specified, use all decoders.
         if decoders is None:

@@ -5,8 +5,6 @@ ViewSB frontend class definitions -- defines the abstract base for things that d
 This file is part of ViewSB
 """
 
-import io
-import sys
 import queue
 
 from .ipc import ProcessManager
@@ -144,7 +142,7 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
         pass
 
 
-    def set_up_ipc(self, data_queue, termination_event, stdin=None):
+    def set_up_ipc(self, data_queue, termination_event):
         """
         Function that accepts the synchronization objects we'll use for input. Must be called prior to
         calling run().
@@ -158,9 +156,9 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
         self.data_queue        = data_queue
         self.termination_event = termination_event
 
-        # Retrieve our use of the standard input from the parent thread.
-        if stdin:
-            self.stdin = sys.stdin = stdin
+        # Re-open stdin. Note that we don't try to pass stdin between the processes,
+        # as the object isn't picklable, and we spawned a new process instead of forking.
+        self.stdin = open(0)
 
 
 

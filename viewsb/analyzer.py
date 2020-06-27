@@ -6,6 +6,7 @@ Decoders, and outputting data to a Frontend (e.g. our main GUI).
 This file is part of ViewSB
 """
 
+import time
 import queue
 import multiprocessing
 
@@ -176,10 +177,6 @@ class ViewSBAnalyzer:
 
     def run(self):
         """ Run this core analysis thread until the frontend requests we stop. Performs the USB analysis itself. """
-
-        # Pass the frontend stdin; this allows console-interactive analyzer to work.
-        # We implicitly give up stdin by calling this.
-        self.frontend.pass_stdin()
 
         # Start our core bg/fg threads.
         self.backend.start()

@@ -6,13 +6,11 @@ Used for comms between the frontend, backend, and analyzer threads.
 This file is part of ViewSB
 """
 
-import os
-import sys
 import multiprocessing
 
 
 class ProcessManager:
-    """ 
+    """
     Base class for objects used to spawn and control remote processes.
     Subclasses are used by the analyzer thread to spawn Frontend and Backend processes.
     """
@@ -31,22 +29,6 @@ class ProcessManager:
     def is_alive(self):
         """ Returns true iff the remote process is still running. """
         return self.remote_process.is_alive()
-
-
-    def pass_stdin(self):
-        """ Sets up passing stdin to the relevant process; removing it from the calling one. """
-
-        # Create a duplicate of stdin for the remote process that will continue
-        # to exist. If we don't create this copy, python's multiprocessing will
-        # close the new class's stdin after the fork/spawn.
-        remote_stdin = self._capture_stdin()
-
-        # Add this new stdin to the remote arguments.
-        self.remote_arguments.append(remote_stdin)
-
-        # Since we're handing stdin to the remote process; we shouldn't use
-        # our local copy. Close it.
-        sys.stdin.close()
 
 
     def _get_process_name(self):
@@ -85,30 +67,15 @@ class ProcessManager:
 
 
     def stop(self):
-        """ 
-        Request that the remote process stop. 
+        """
+        Request that the remote process stop.
         """
         self.termination_event.set()
         self.remote_process.join()
 
 
-    def _capture_stdin(self):
-        """ 
-        Currently, the multiprocessing module kills stdin on any newly-spawned processes; and doesn't
-        allow us to configure which of the multiple processes retains a living stdin.
-
-        To work around this, we'll break stdin away from python's control, and manually pass it to
-        the subordinate processes.
-        """
-
-        # Create a duplicate handle onto the standard input.
-        # This effectively increases the file's refcount, preventing python from disposing of it.
-        fd_stdin = sys.stdin.fileno()
-        return os.fdopen(os.dup(fd_stdin))
-
-
     @staticmethod
-    def _subordinate_process_entry(remote_class, arguments, data_queue, termination_event, stdin=None):
+    def _subordinate_process_entry(remote_class, arguments, data_queue, termination_event):
         """
         Helper function for running a remote with a UI 'thread'. This method should usually be called in a subordinate
         process managed by multiprocessing. You probably want the public API of ViewSBFrontendProcess/ViewSBBackendProcess.
@@ -118,7 +85,7 @@ class ProcessManager:
         task = remote_class(*arguments)
 
         # Pass the new 'task' our IPC mechanisms, and then standard input.
-        task.set_up_ipc(data_queue, termination_event, stdin)
+        task.set_up_ipc(data_queue, termination_event)
 
         # Finally, run our 'task' until it terminates.
         task.run()

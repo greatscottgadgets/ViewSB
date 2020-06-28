@@ -29,7 +29,7 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
         pass
 
 
-    def set_up_ipc(self, output_queue, termination_event, stdin=None):
+    def set_up_ipc(self, output_queue, termination_event):
         """
         Method that accepts the synchronization objects we'll use for output. Must be called prior to
         calling run(). Usually called by the BackendProcess setup functions.

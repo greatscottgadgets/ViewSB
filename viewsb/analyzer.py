@@ -6,7 +6,9 @@ Decoders, and outputting data to a Frontend (e.g. our main GUI).
 This file is part of ViewSB
 """
 
+import time
 import queue
+import multiprocessing
 
 from .decoder import ViewSBDecoder
 from .decoders import *
@@ -36,6 +38,10 @@ class ViewSBAnalyzer:
                         ViewSB decoders are intended to produce sane results with all filters enabled, so this is likely
                         what you want.
         """
+
+        # The fork method is the default for Linux (and macOS prior to Python 3.8), but it's considered unsafe
+        # on macOS, and it isn't available on Windows, so we'll use the spawn method for all platforms.
+        multiprocessing.set_start_method('spawn')
 
         # If decoders weren't specified, use all decoders.
         if decoders is None:
@@ -171,10 +177,6 @@ class ViewSBAnalyzer:
 
     def run(self):
         """ Run this core analysis thread until the frontend requests we stop. Performs the USB analysis itself. """
-
-        # Pass the frontend stdin; this allows console-interactive analyzer to work.
-        # We implicitly give up stdin by calling this.
-        self.frontend.pass_stdin()
 
         # Start our core bg/fg threads.
         self.backend.start()

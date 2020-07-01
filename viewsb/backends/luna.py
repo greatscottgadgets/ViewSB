@@ -74,7 +74,7 @@ class LUNABackend(ViewSBBackend):
         self.analyzer = USBAnalyzerConnection()
 
         # Build our analyzer gateware, and configure our FPGA.
-        self.analyzer.build_and_configure(capture_speed)
+        self.analyzer.build_and_configure(self.capture_speed)
 
 
     def run_capture(self):

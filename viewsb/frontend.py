@@ -23,17 +23,17 @@ class ViewSBEnumerableFromUI:
     def available_on_system(cls):
         """ Returns true iff this class can be used on the current system.
 
-        Generally, prefer implementing reason_for_disabling, and allowing this
+        Generally, prefer implementing reason_to_be_disabled(), and allowing this
         function to automatically determine using its result.
         """
-        return (cls.reason_to_be_disabled() is None)
+        return cls.reason_to_be_disabled() is None
 
 
     @classmethod
     def reason_to_be_disabled(cls):
         """
         Returns a string describing any reasons this class would be unavailable, or None
-        if the backend is currently available.
+        if this class is currently available.
 
         The latter condition is mandatory for implementers; it will be used by the default
         implementation of `available_for_capture`.
@@ -44,16 +44,28 @@ class ViewSBEnumerableFromUI:
 
     @staticmethod
     def parse_arguments(args, parent_parser=[]):
-        """ Optional method that parses command-line options with which to set up the given module.
+        """ This method has been replaced by add_options() and should not be used. """
 
-        Typically, this would be used by instantiating your own argparse instance and consuming from
-        the remaining arguments.
+        raise ValueError("This method has been replaced by add_options() and should not be used.")
 
-        Returns: parsed_args, leftover_args
-            parsed_args -- a tuple of arguments that should be passed to the class constructor
-            leftover_args -- A list of any arguments left over after parsing.
+
+    @classmethod
+    def add_options(cls, parser):
+        """ Optional method to add command-line settable options for a frontend or backend.
+
+        Note that arguments should all be options (start with `-` or `--`), not positional arguments, and that
+        the class's __init__() should take a keyword argument of the same name as the argument's 'dest' value
+        for each option it accepts.
+        For example if the class's add_options() calls:
+            parser.add_argument('--capture-speed', dest='speed', type=str, default='high')
+        Then the __init__ should look something like this:
+            def __init__(self, speed='high')
+
+        Args:
+            parser -- the argparse.ArgumentParser for that backend.
+                Call parser.add_argument() to add options for that backend.
         """
-        return ((), args)
+        pass
 
 
     @classmethod
@@ -68,7 +80,6 @@ class ViewSBEnumerableFromUI:
                 return subclass
 
         return None
-
 
 
     @classmethod
@@ -93,8 +104,6 @@ class ViewSBEnumerableFromUI:
         return subclasses
 
 
-
-
     @classmethod
     def available_subclasses(cls):
         """ Returns an iterator over all available backend objects. """
@@ -110,7 +119,6 @@ class ViewSBEnumerableFromUI:
             backend -- The unavailable backend class.
             reason -- The reason the given backend isn't available.
         """
-        unavailable = []
 
         return ((subclass, subclass.reason_to_be_disabled()) \
             for subclass in cls.all_named_subclasses() if not subclass.available_on_system())
@@ -120,8 +128,6 @@ class ViewSBEnumerableFromUI:
 class ViewSBFrontendProcess(ProcessManager):
     """ Class that controls and communicates with a ViewSB UI running in another process. """
     pass
-
-
 
 
 class ViewSBFrontend(ViewSBEnumerableFromUI):
@@ -139,7 +145,10 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
         Function that initializes the relevant frontend. In most cases, this objects won't be instantiated
         directly -- but instead instantiated by the `run_asynchronously` / 'run_frontend_asynchronously` helpers.
         """
-        pass
+
+        self.data_queue        = None
+        self.termination_event = None
+        self.stdin             = None
 
 
     def set_up_ipc(self, data_queue, termination_event):
@@ -230,4 +239,3 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
     def handle_termination(self):
         """ Called once the capture is terminated; gives the frontend the ability to clean up. """
         pass
-

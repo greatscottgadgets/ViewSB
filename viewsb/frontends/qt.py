@@ -14,6 +14,7 @@ from ..frontend import ViewSBFrontend
 
 
 try:
+    import PySide2
     from PySide2 import QtCore, QtWidgets
     from PySide2.QtWidgets import QApplication, QMainWindow
     from PySide2.QtWidgets import QTreeWidget, QTreeWidgetItem, QTableView, QAbstractItemView
@@ -369,9 +370,10 @@ class QtFrontend(ViewSBFrontend):
 
     @staticmethod
     def reason_to_be_disabled():
-        # If we weren't able to import PySide2, disable this frontend.
-        if 'QWidget' not in globals():
-            return "PySide2 (Qt library) not available"
+        try:
+            import PySide2
+        except ImportError:
+            return "PySide2 (Qt library) not available."
 
         return None
 

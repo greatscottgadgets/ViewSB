@@ -10,16 +10,13 @@ This file is part of ViewSB
 
 import sys
 import errno
-import argparse
-import time
-from datetime import datetime
 
 from ..backend import ViewSBBackend
-from ..packet import USBPacket, USBControlTransfer, USBPacketID
+from ..packet import USBPacket
 
 
 try:
-    from phywhisperer import USBEventSink, usb as pw
+    from phywhisperer import USBEventSink
 
     class ViewSBEventSink(USBEventSink):
         """ PhyWhisperer USB event sink that submits packets for decoding. """
@@ -50,7 +47,7 @@ try:
             self._emit_packet(packet)
 
 
-except (ImportError, ModuleNotFoundError) as e:
+except (ImportError, ModuleNotFoundError):
     pass
 
 
@@ -76,39 +73,22 @@ class PhyWhispererBackend(ViewSBBackend):
 
 
     @classmethod
-    def parse_arguments(cls, args, parent_parser=[]):
+    def add_options(cls, parser):
 
         # Parse user input and try to extract our class options.
-        parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
         parser.add_argument('--size', type=int, default=cls.MAX_CAPTURE_SIZE,
                 help="capture size (0 = unlimited)")
         parser.add_argument('--pattern', type=int, nargs='+', default=[0], choices=range(0,256),
-                help="capture pattern (list of ints)")
+                metavar='pattern', help="capture pattern (list of ints)")
         parser.add_argument('--mask', type=int, nargs='+', default=[0], choices=range(0,256),
-                help="mask pattern (list of ints)")
+                metavar='mask', help="mask pattern (list of ints)")
         parser.add_argument('--addpattern', action='store_true',
                 help="add pattern to captured data")
         parser.add_argument('--burst', action='store_true',
                 help="read captured data in a single burst")
         parser.add_argument('--timeout', type=int, default=5,
                 help="capture timeout in seconds")
-        args, leftover_args = parser.parse_known_args()
 
-
-        if args.burst and args.size not in range(1,cls.MAX_CAPTURE_SIZE+1):
-            sys.stderr.write("size must be between 1 and %d (inclusive) when using burst mode\n" % cls.MAX_CAPTURE_SIZE)
-            sys.exit(errno.EINVAL)
-
-        if len(args.pattern) != len(args.mask):
-            sys.stderr.write("pattern and mask must have same number of elements\n")
-            sys.exit(errno.EINVAL)
-
-        if len(args.pattern) > cls.MAX_PATTERN_SIZE:
-            sys.stderr.write("pattern cannot have more than %s elements\n" % cls.MAX_PATTERN_SIZE)
-            sys.exit(errno.EINVAL)
-
-        #  Return the class and leftover arguments.
-        return (args.size, args.burst, args.pattern, args.mask, args.addpattern, args.timeout), leftover_args
 
 
     def __init__(self, size, burst, pattern, mask, addpattern, timeout, suppress_packet_callback=None):
@@ -126,6 +106,20 @@ class PhyWhispererBackend(ViewSBBackend):
                 which packets should be dropped before being submitted to the
                 analysis queue.
         """
+
+        super().__init__()
+
+        if burst and size not in range(1, self.MAX_CAPTURE_SIZE + 1):
+            sys.stderr.write("size must be between 1 and %d (inclusive) when using burst mode\n" % self.MAX_CAPTURE_SIZE)
+            sys.exit(errno.EINVAL)
+
+        if len(pattern) != len(mask):
+            sys.stderr.write("pattern and mask must have same number of elements\n")
+            sys.exit(errno.EINVAL)
+
+        if len(pattern) > self.MAX_PATTERN_SIZE:
+            sys.stderr.write("pattern cannot have more than %s elements\n" % self.MAX_PATTERN_SIZE)
+            sys.exit(errno.EINVAL)
 
         from phywhisperer import usb as pw
 
@@ -156,5 +150,3 @@ class PhyWhispererBackend(ViewSBBackend):
 
         finally:
             self.pw_device.close()
-
-

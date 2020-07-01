@@ -194,6 +194,11 @@ class Rhododendron(ViewSBBackend):
     UI_NAME = "rhododendron"
     UI_DESCRIPTION = "GreatFET Rhododendron capture neighbor"
 
+    SPEEDS = {
+        'high': SPEED_HIGH,
+        'full': SPEED_FULL,
+        'low':  SPEED_LOW,
+    }
 
     @staticmethod
     def reason_to_be_disabled():
@@ -211,35 +216,20 @@ class Rhododendron(ViewSBBackend):
         return None
 
 
-    @staticmethod
-    def speed_from_string(string):
-        speeds = {
-            'high': SPEED_HIGH,
-            'full': SPEED_FULL,
-            'low':  SPEED_LOW,
-        }
+    @classmethod
+    def speed_from_string(cls, string):
 
         try:
-            return speeds[string]
+            return cls.SPEEDS[string]
         except KeyError:
             return None
 
 
     @classmethod
-    def parse_arguments(cls, args, parent_parser=[]):
+    def add_options(cls, parser):
 
-        # Parse user input and try to extract our class options.
-        parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
-        parser.add_argument('--speed', type=cls.speed_from_string, default='high',
-                help="the speed of the USB data to capture [valid: {high, full, low}]")
-        args, leftover_args = parser.parse_known_args()
-
-        if args.speed is None:
-            sys.stderr.write("speed must be 'high', 'full', or 'low'\n")
-            sys.exit(errno.EINVAL)
-
-        #  Return the class and leftover arguments.
-        return (args.speed, ), leftover_args
+        parser.add_argument('--speed', dest='capture_speed', default='high', choices=cls.SPEEDS.keys(),
+            help="The speed of the USB data to capture.")
 
 
     def __init__(self, capture_speed, suppress_packet_callback=None):

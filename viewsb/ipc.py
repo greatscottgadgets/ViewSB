@@ -15,7 +15,7 @@ class ProcessManager:
     Subclasses are used by the analyzer thread to spawn Frontend and Backend processes.
     """
 
-    def __init__(self, remote_class, *remote_arguments):
+    def __init__(self, remote_class, **remote_arguments):
 
         # Create our output queue and our termination-signaling event.
         self.data_queue        = multiprocessing.Queue()
@@ -82,7 +82,7 @@ class ProcessManager:
         """
 
         # Create a new instance of the task class.
-        task = remote_class(*arguments)
+        task = remote_class(**arguments)
 
         # Pass the new 'task' our IPC mechanisms, and then standard input.
         task.set_up_ipc(data_queue, termination_event)

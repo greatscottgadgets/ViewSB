@@ -134,8 +134,8 @@ This file is part of ViewSB
       <widget class="ViewSBQTreeWidget" name="usb_details_tree_widget">
        <property name="initialSize" stdset="0">
         <size>
-         <width>400</width>
-         <height>0</height>
+         <width>550</width>
+         <height>200</height>
         </size>
        </property>
        <column>
@@ -153,11 +153,35 @@ This file is part of ViewSB
     </layout>
    </widget>
   </widget>
+  <widget class="QDockWidget" name="hex_dock">
+   <property name="windowTitle">
+    <string>Raw</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="hex_dock_contents">
+    <layout class="QGridLayout">
+     <item row="0" column="0">
+      <widget class="ViewSBHexView" name="usb_hex_view">
+       <attribute name="verticalHeaderCascadingSectionResizes">
+        <bool>true</bool>
+       </attribute>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>
    <class>ViewSBQTreeWidget</class>
    <extends>QTreeWidget</extends>
+   <header>qt.py</header>
+  </customwidget>
+  <customwidget>
+   <class>ViewSBHexView</class>
+   <extends>QTableView</extends>
    <header>qt.py</header>
   </customwidget>
  </customwidgets>

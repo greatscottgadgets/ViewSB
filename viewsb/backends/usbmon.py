@@ -391,17 +391,11 @@ class USBMonFileBackend(USBMonBackend, FileBackend):
 
 
     @staticmethod
-    def parse_arguments(args, parent_parser=[]):
+    def add_options(parser):
 
         # Parse user input and try to extract our class options.
-        parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
-        parser.add_argument('--file', type=argparse.FileType('rb', bufsize=-0),
+        parser.add_argument('--file', dest='filename', type=argparse.FileType('rb', bufsize=-0),
                 default='/dev/usbmon0', help="the file to read usbmon data from")
-        args, leftover_args = parser.parse_known_args()
-
-        #  Return the class and leftover arguments.
-        return (args.file, ), leftover_args
-
 
 
     # TODO: support modes other than compatibility mode?

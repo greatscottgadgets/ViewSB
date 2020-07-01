@@ -11,7 +11,9 @@ import queue
 import multiprocessing
 
 from .decoder import ViewSBDecoder
+# pylint: disable=W0401, W0614
 from .decoders import *
+# pylint: enable=W0401, W0614
 
 from .backend import ViewSBBackendProcess
 from .frontend import ViewSBFrontendProcess
@@ -57,11 +59,11 @@ class ViewSBAnalyzer:
 
         # Create -- but don't start -- our backend process.
         backend_class, backend_arguments = backend
-        self.backend = ViewSBBackendProcess(backend_class, *backend_arguments)
+        self.backend = ViewSBBackendProcess(backend_class, **backend_arguments)
 
         # Create -- but don't start -- our frontend process.
         frontend_class, frontend_arguments = frontend
-        self.frontend = ViewSBFrontendProcess(frontend_class, *frontend_arguments)
+        self.frontend = ViewSBFrontendProcess(frontend_class, **frontend_arguments)
 
 
     def add_decoder(self, decoder, *arguments, **kwargs):

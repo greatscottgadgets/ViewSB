@@ -261,6 +261,18 @@ class USBProxyBackend(ViewSBBackend):
         self.proxy.connect()
 
 
+    @classmethod
+    def add_options(cls, parser):
+
+        def hex_int(i):
+            return int(i, 16)
+
+        parser.add_argument('-v', '--vid', type=hex_int, required=True, dest='vendor_id',
+            help="USB Vendor ID in hex")
+        parser.add_argument('-p', '--pid', type=hex_int, required=True, dest='product_id',
+            help="USB Product ID in hex")
+
+
     def get_microseconds(self):
 
         # Get the current time...

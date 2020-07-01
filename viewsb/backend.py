@@ -26,13 +26,15 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
         Method that initializes the relevant backend. In most cases, this objects won't be instantiated
         directly -- but instead instantiated by the `run_asynchronously` / 'run_backend_asynchronously` helpers.
         """
-        pass
+
+        self.output_queue      = None
+        self.termination_event = None
 
 
     def set_up_ipc(self, output_queue, termination_event):
         """
         Method that accepts the synchronization objects we'll use for output. Must be called prior to
-        calling run(). Usually called by the BackendProcess setup functions.
+        calling run(). Usually called by the BackendProcess/FrontendProcess setup functions.
 
         Args:
             output_queue -- The Queue object that will be fed any USB data generated.
@@ -84,6 +86,8 @@ class FileBackend(ViewSBBackend):
 
     def __init__(self, target_file):
 
+        super().__init__()
+
         # Open the relevant file for reading.
         if isinstance(target_file, io.IOBase):
             self.target_file = target_file
@@ -123,9 +127,3 @@ class FileBackend(ViewSBBackend):
     def handle_data(self, data):
         """ Handle chunks of data read from the relevant file. """
         raise NotImplementedError("subclass must implement handle_data()")
-
-
-
-
-
-

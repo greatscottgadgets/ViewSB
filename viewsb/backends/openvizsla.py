@@ -7,11 +7,6 @@ This file is part of ViewSB
 
 # pylint: disable=maybe-no-member,access-member-before-definition
 
-import sys
-import errno
-import argparse
-from datetime import datetime
-
 from ..backend import ViewSBBackend
 from ..packet import USBPacket
 
@@ -52,7 +47,7 @@ try:
             """ Called whenever the OpenVizsla device detects a new USB packet. """
 
             # For now, ignore any unpopulated USB packets as noise.
-            if not len(raw_packet):
+            if not raw_packet:
                 return
 
             # TODO: convert flags to status?
@@ -63,7 +58,7 @@ try:
                 self._emit_packet(packet)
 
 
-except (ImportError, ModuleNotFoundError) as e:
+except (ImportError, ModuleNotFoundError):
     pass
 
 
@@ -72,6 +67,12 @@ class OpenVizslaBackend(ViewSBBackend):
 
     UI_NAME = "openvizsla"
     UI_DESCRIPTION = "OpenVizsla hardware analyzers"
+
+    SPEEDS = {
+        'high': OVCaptureUSBSpeed.HIGH,
+        'full': OVCaptureUSBSpeed.FULL,
+        'low':  OVCaptureUSBSpeed.LOW
+    }
 
 
     @staticmethod
@@ -84,40 +85,23 @@ class OpenVizslaBackend(ViewSBBackend):
         return None
 
 
-    @staticmethod
-    def speed_from_string(string):
-        speeds = {
-            'high': OVCaptureUSBSpeed.HIGH,
-            'full': OVCaptureUSBSpeed.FULL,
-            'low':  OVCaptureUSBSpeed.LOW
-        }
+    @classmethod
+    def speed_from_string(cls, string):
 
         try:
-            return speeds[string]
+            return cls.SPEEDS[string]
         except KeyError:
-            return None
+            return string
 
 
     @classmethod
-    def parse_arguments(cls, args, parent_parser=[]):
+    def add_options(cls, parser):
 
-        # Parse user input and try to extract our class options.
-        parser = argparse.ArgumentParser(parents=parent_parser, add_help=False)
-        parser.add_argument('--speed', type=cls.speed_from_string, default='high',
-                help="the speed of the USB data to capture [valid: {high, full, low}]")
-        args, leftover_args = parser.parse_known_args()
+        parser.add_argument('--speed', default='high', choices=cls.SPEEDS.keys(),
+            help="The speed of the USB data to capture.")
 
 
-        if args.speed is None:
-            sys.stderr.write("speed must be 'high', 'full', or 'low'\n")
-            sys.exit(errno.EINVAL)
-
-
-        #  Return the class and leftover arguments.
-        return (args.speed, ), leftover_args
-
-
-    def __init__(self, capture_speed, suppress_packet_callback=None):
+    def __init__(self, speed, suppress_packet_callback=None):
         """ Creates a new OpenVizsla capture backend.
 
         Args:
@@ -127,8 +111,10 @@ class OpenVizslaBackend(ViewSBBackend):
                 analysis queue.
         """
 
+        super().__init__()
+
         # TODO: validate
-        self.capture_speed = capture_speed
+        self.capture_speed = self.speed_from_string(speed)
 
         # Create a new OpenVizsla device; but don't yet try to connect to it.
         self.ov_device = OVDevice()
@@ -150,6 +136,3 @@ class OpenVizslaBackend(ViewSBBackend):
         finally:
             self.ov_device.ensure_capture_stopped()
             self.ov_device.close()
-
-
-

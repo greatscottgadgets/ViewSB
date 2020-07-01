@@ -9,11 +9,15 @@ This file is part of ViewSB
 import construct
 from construct import this
 
+import usb_protocol
+
+from usb_protocol.types.descriptor import DescriptorFormat, DescriptorField, DescriptorNumber
+from usb_protocol.types.descriptors import DeviceDescriptor, ConfigurationDescriptor, InterfaceDescriptor
+from usb_protocol.types.descriptors import EndpointDescriptor, DeviceQualifierDescriptor, StringDescriptor
+
 from .standard_requests import GetDescriptorRequest
 
-from .. import usb_types
 from ..decoder import ViewSBDecoder, UnhandledPacket
-from ..descriptor import DescriptorFormat, DescriptorField, DescriptorNumber
 from ..device_model import DeviceModel
 
 
@@ -52,22 +56,7 @@ class DescriptorRequestDecoder(ViewSBDecoder):
 class GetDeviceDescriptorRequest(GetDescriptorRequest):
 
     DESCRIPTOR_NAME = "device"
-    BINARY_FORMAT = DescriptorFormat(
-            "bLength"             / DescriptorField("Length"),
-            "bDescriptorType"     / DescriptorNumber(1),
-            "bcdUSB"              / DescriptorField("USB Version"),
-            "bDeviceClass"        / DescriptorField("Class"),
-            "bDeviceSubclass"     / DescriptorField("Subclass"),
-            "bDeviceProtocol"     / DescriptorField("Protocol"),
-            "bMaxPacketSize"      / DescriptorField("EP0 Max Pkt Size"),
-            "idVendor"            / DescriptorField("Vendor ID"),
-            "idProduct"           / DescriptorField("Product ID"),
-            "bcdDevice"           / DescriptorField("Device Version"),
-            "iManufacturer"       / DescriptorField("Manufacturer Str"),
-            "iProduct"            / DescriptorField("Product Str"),
-            "iSerialNumber"       / DescriptorField("Serial Number"),
-            "bNumConfigurations"  / DescriptorField("Configuration Count"),
-    )
+    BINARY_FORMAT = DeviceDescriptor
 
     def get_name_for_class(self, decoded):
 
@@ -109,16 +98,7 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
 class GetConfigurationDescriptorRequest(GetDescriptorRequest):
 
     DESCRIPTOR_NAME = "configuration"
-    BINARY_FORMAT = DescriptorFormat(
-            "bLength"             / DescriptorField("Length"),
-            "bDescriptorType"     / DescriptorNumber(2),
-            "wTotalLength"        / DescriptorField("Length including subordinates"),
-            "bNumInterfaces"      / DescriptorField("Interface count"),
-            "bConfigurationValue" / DescriptorField("Configuration number"),
-            "iConfiguration"      / DescriptorField("Description string"),
-            "bmAttributes"        / DescriptorField("Attributes"),
-            "bMaxPower"           / DescriptorField("Max power consumption"),
-    )
+    BINARY_FORMAT = ConfigurationDescriptor
 
 
     def validate(self):
@@ -220,10 +200,7 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
 class GetStringDescriptorRequest(GetDescriptorRequest):
 
     DESCRIPTOR_NAME = "string"
-    BINARY_FORMAT = DescriptorFormat(
-            "bLength"             / DescriptorField("Length"),
-            "bDescriptorType"     / DescriptorNumber(3),
-    )
+    BINARY_FORMAT = StringDescriptor
 
     def get_decoded_descriptor(self, data=None):
 
@@ -264,7 +241,7 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
 
             # Add the language to our list.
             try:
-                entries.append((langid, usb_types.LANGUAGE_NAMES[langid]))
+                entries.append((langid, usb_protocol.types.LANGUAGE_NAMES[langid]))
             except KeyError:
                 entries.append((langid, None))
 
@@ -338,46 +315,19 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
 class GetInterfaceDescriptorRequest(GetDescriptorRequest):
 
     DESCRIPTOR_NAME = "interface"
-    BINARY_FORMAT = DescriptorFormat(
-            "bLength"             / DescriptorField("Length"),
-            "bDescriptorType"     / DescriptorNumber(4),
-            "bInterfaceNumber"    / DescriptorField("Interface number"),
-            "bAlternateSetting"   / DescriptorField("Alternate setting"),
-            "bNumEndpoints"       / DescriptorField("Endpoints included"),
-            "bInterfaceClass"     / DescriptorField("Class"),
-            "bInterfaceSubclass"  / DescriptorField("Subclass"),
-            "bInterfaceProtocol"  / DescriptorField("Protocol"),
-            "iInterface"          / DescriptorField("String index"),
-    )
+    BINARY_FORMAT = InterfaceDescriptor
 
 
 class GetEndpointDescriptorRequest(GetDescriptorRequest):
 
     DESCRIPTOR_NAME = "endpoint"
-    BINARY_FORMAT = DescriptorFormat(
-            "bLength"             / DescriptorField("Length"),
-            "bDescriptorType"     / DescriptorNumber(5),
-            "bEndpointAddress"    / DescriptorField("Endpoint Address"),
-            "bmAttributes"        / DescriptorField("Attributes"),
-            "wMaxPacketSize"      / DescriptorField("Maximum Packet Size"),
-            "bInterval"           / DescriptorField("Polling interval"),
-    )
+    BINARY_FORMAT = EndpointDescriptor
 
 
 class GetDeviceQualifierDescriptorRequest(GetDescriptorRequest):
 
     DESCRIPTOR_NAME = "device qualifier"
-    BINARY_FORMAT = DescriptorFormat(
-            "bLength"             / DescriptorField("Length"),
-            "bDescriptorType"     / DescriptorNumber(6),
-            "bcdUSB"              / DescriptorField("USB Version"),
-            "bDeviceClass"        / DescriptorField("Class"),
-            "bDeviceSubclass"     / DescriptorField("Subclass"),
-            "bDeviceProtocol"     / DescriptorField("Protocol"),
-            "bMaxPacketSize0"     / DescriptorField("EP0 Max Pkt Size"),
-            "bNumConfigurations"  / DescriptorField("Configuration Count"),
-            "_bReserved"          / construct.Optional(construct.Const(b"\0"))
-    )
+    BINARY_FORMAT = DeviceQualifierDescriptor
 
 
 

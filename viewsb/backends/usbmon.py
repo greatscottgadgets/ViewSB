@@ -7,17 +7,16 @@ This file is part of ViewSB
 
 import errno
 import struct
-import argparse
+
+from enum import Enum
 
 import usb_protocol
 
 from usb_protocol.types import USBDirection, USBRequestRecipient, USBRequestType, USBPacketID, USBTransferType
 
 from ..backend import ViewSBBackend, FileBackend
-from ..packet import USBPacket, USBSetupTransfer, USBDataTransfer, USBStatusTransfer, USBControlTransfer, \
+from ..packet import USBSetupTransfer, USBDataTransfer, USBStatusTransfer, USBControlTransfer, \
      USBBulkTransfer, USBInterruptTransfer, USBIsochronousTransfer, USBTransferFragment
-
-from enum import Enum
 
 
 class TransferType(Enum):
@@ -52,6 +51,7 @@ class EventType(Enum):
     ERROR       = b'E'
 
 
+# pylint: disable=no-member
 class USBMonEvent:
     """ Class representing a USBMon event packet. """
 
@@ -85,7 +85,7 @@ class USBMonEvent:
         # Squish the packets in our event back into a setup packet.
         # This is cleaner than extracting it from the packet, again.
         return struct.pack("<BBHHH", self.request_type_or_error_count,
-                self.request_number_or_desc_number, self.value, self.index, self.request_length)
+            self.request_number_or_desc_number, self.value, self.index, self.request_length)
 
 
 
@@ -114,8 +114,6 @@ class USBMonEvent:
         return cls(**properties)
 
 
-
-
 class USBMonBackend(ViewSBBackend):
     """
     Class that handles pcap data. Should not be instantiated directly;
@@ -124,6 +122,8 @@ class USBMonBackend(ViewSBBackend):
 
     def __init__(self):
         """ Create our new backend object. """
+
+        ViewSBBackend.__init__(self)
 
         # Create an empty mapping that will store pending URBs; indexed by tag.
         self.pending_urbs = {}
@@ -173,7 +173,7 @@ class USBMonBackend(ViewSBBackend):
 
         # 1) This is completion of a control transfer; we'll need to
         #    build a control transfer object for the given event.
-        if (callback.transfer_type is TransferType.CONTROL):
+        if callback.transfer_type is TransferType.CONTROL:
 
             # If we have all the data we need to do that, do so:
             if submission:
@@ -242,18 +242,15 @@ class USBMonBackend(ViewSBBackend):
     def _generate_data_transfer_for_event(self, event, stall=None):
         """ Generates a data transfer that encapsulates for the given event. """
 
-        # If we're not explicitly overriding the handshake, use the natural
-        # ACK/NAK/STALL responses as returned from usbmon.
-        if stall is None:
-            handshake = self._get_handshake_for_event(event)
+        common_fields = self._common_packet_fields_for_event(event)
 
-        # Otherwise, force the packet to STALL or ACK.
-        else:
-            handshake = USBPacketID.STALL if stall else USBPacketID.ACK
+        # Override the handshake if we have to.
+        if stall is not None:
+            common_fields['handshake'] = USBPacketID.STALL if stall else USBPacketID.ACK
 
         # Convert the
         packet_type = event.transfer_type.associated_data_transfer_type()
-        return packet_type(**self._common_packet_fields_for_event(event))
+        return packet_type(**common_fields)
 
 
     def _generate_orphaned_transfer_for_event(self, event):
@@ -355,10 +352,6 @@ class USBMonBackend(ViewSBBackend):
         request_type         = USBRequestType.from_request_type(request_type_packed)
         recipient            = USBRequestRecipient.from_request_type(request_type_packed)
 
-        # Create short aliases for the other pieces of the request.
-        endpoint_number      = submission.endpoint_number
-
-
         # Capture the common packet fields into a basis for the setup transfer.
         fields = self._common_packet_fields_for_event(submission)
 
@@ -395,8 +388,8 @@ class USBMonFileBackend(USBMonBackend, FileBackend):
     def add_options(parser):
 
         # Parse user input and try to extract our class options.
-        parser.add_argument('--file', dest='filename', type=argparse.FileType('rb', bufsize=-0),
-                default='/dev/usbmon0', help="the file to read usbmon data from")
+        parser.add_argument('--file', dest='filename', default='/dev/usbmon0',
+            help="The file to read usbmon data from")
 
 
     # TODO: support modes other than compatibility mode?
@@ -411,5 +404,3 @@ class USBMonFileBackend(USBMonBackend, FileBackend):
 
     def read_data(self, length):
         return self.read(length)
-
-

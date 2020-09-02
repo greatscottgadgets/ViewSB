@@ -7,6 +7,7 @@ This file is part of ViewSB
 
 import io
 import argparse
+import sys
 
 from .ipc import ProcessManager
 from .frontend import ViewSBEnumerableFromUI
@@ -96,7 +97,7 @@ class FileBackend(ViewSBBackend):
             # We delayed opening the file until after the creation of this backend process.
             # But now that we do want to open the file, we want to use the same logic
             # that argparse normally provides.
-            self.target_file = argparse.FileType('rb', bufsize=0)(target_file)
+            self.target_file = open(target_file if target_file != '-' else sys.stdin, 'rb', buffering=0)
 
 
     def next_read_size(self):

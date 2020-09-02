@@ -7,6 +7,9 @@ This file is part of ViewSB
 """
 
 import multiprocessing
+import time
+import threading
+import traceback
 
 
 def handle_exceptions(exception, traceback):
@@ -44,6 +47,10 @@ class ProcessManager:
     Subclasses are used by the analyzer thread to spawn Frontend and Backend processes.
     """
 
+    _processes = []
+    _scan_exit_thread_active = threading.Event()
+
+
     def __init__(self, remote_class, **remote_arguments):
 
         # Create our output queue and our termination-signaling event.
@@ -53,6 +60,26 @@ class ProcessManager:
         # And put together our arguments.
         self.remote_arguments  = \
              [remote_class, remote_arguments, self.data_queue, self.termination_event]
+
+
+    @staticmethod
+    def _scan_bad_exits(processes):
+        '''
+        Scan the active process list and check if any of the processes exited with
+        a bad (non-zero) code, if so, we terminate all other processes and exit
+        ourselves with the same code.
+        '''
+        leave = False
+        while not leave:
+            for process in processes.copy():
+                if process.exitcode:
+                    leave = True
+            time.sleep(0.2)
+
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+        exit(process.exitcode)
 
 
     def is_alive(self):
@@ -65,8 +92,11 @@ class ProcessManager:
         return "{} process".format(self.remote_arguments[0].__name__)
 
 
-    def start(self):
-        """ Start the remote process, and allow it to begin processing. """
+    def start(self, *, vital=True):
+        """
+        Start the remote process, and allow it to begin processing.
+        If the vital argument is set, we will exit if the process also exits.
+        """
 
         # Ensure our termination event isn't set.
         self.termination_event.clear()
@@ -78,6 +108,16 @@ class ProcessManager:
         self.remote_process = \
             Process(exception_handler=handle_exceptions, target=self._subordinate_process_entry, args=self.remote_arguments, name=name)
         self.remote_process.start()
+
+        if vital:
+            self._processes.append(self.remote_process)
+            if not self._scan_exit_thread_active.is_set():
+                self._scan_exit_thread_active.set()
+                self._scan_exit_thread = threading.Thread(
+                    target=self._scan_bad_exits,
+                    args=(self._processes,)
+                )
+                self._scan_exit_thread.start()
 
 
     def issue_packet(self, packet):
@@ -101,6 +141,9 @@ class ProcessManager:
         """
         self.termination_event.set()
         self.remote_process.join()
+
+        if self.remote_process in self._processes:
+            self._processes.remove(self.remote_process)
 
 
     @staticmethod

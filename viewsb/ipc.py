@@ -88,4 +88,7 @@ class ProcessManager:
         task.set_up_ipc(data_queue, termination_event)
 
         # Finally, run our 'task' until it terminates.
-        task.run()
+        try:
+            task.run()
+        except KeyboardInterrupt:
+            pass

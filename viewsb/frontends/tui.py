@@ -306,7 +306,10 @@ class TUIFrontend(ViewSBFrontend):
 
         # Run the main TUI.
         self.schedule_next_communication()
-        self.loop.run()
+        try:
+            self.loop.run()
+        except KeyboardInterrupt:
+            pass
 
         # FIXME: signal for termination, here?
 

@@ -9,6 +9,35 @@ This file is part of ViewSB
 import multiprocessing
 
 
+def handle_exceptions(exception, traceback):
+    """
+    Callback that gets called when a exception is raised in a IPC process.
+    Replace with your own stub to customize behavior, for eg. in a CLI application.
+    """
+    raise exception
+
+
+class Process(multiprocessing.Process):
+    """ Process class that forwards exceptions to the parent """
+
+    def __init__(self, exception_handler, *args, **kwargs):
+        multiprocessing.Process.__init__(self, daemon=True, *args, **kwargs)
+        self._parent_conn, self._child_conn = multiprocessing.Pipe()
+        self.exception_handler = exception_handler
+
+    def run(self):
+        try:
+            multiprocessing.Process.run(self)
+        except Exception as e:
+            self.exception_handler(e, traceback.format_exc())
+
+    @property
+    def exit(self):
+        if self._parent_conn.poll():
+            self._exit = self._parent_conn.recv()
+        return self._exception
+
+
 class ProcessManager:
     """
     Base class for objects used to spawn and control remote processes.
@@ -47,7 +76,7 @@ class ProcessManager:
 
         # Create and start our background process.
         self.remote_process = \
-            multiprocessing.Process(target=self._subordinate_process_entry, args=self.remote_arguments, name=name)
+            Process(exception_handler=handle_exceptions, target=self._subordinate_process_entry, args=self.remote_arguments, name=name)
         self.remote_process.start()
 
 

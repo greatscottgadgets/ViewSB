@@ -8,6 +8,7 @@ This file is part of ViewSB
 
 import sys
 import argparse
+import traceback
 
 from .. import ViewSBAnalyzer
 
@@ -25,6 +26,17 @@ from ..frontends import *
 # pylint: enable=W0401, W0614
 
 from ..decoders.filters import USBStartOfFrameFilter
+
+from .. import ipc
+
+
+def error(msg, code=1):
+    """ Prints an error message and exits. Will color the output when writting to a TTY. """
+    prefix = "ERROR"
+    if sys.stdout.isatty():
+        prefix = "\33[91m" + prefix + "\33[0m"
+    print("{} {}".format(prefix, msg))
+    exit(code)
 
 
 def list_enumerables(enumerable_type, name, include_unavailable=True):
@@ -201,8 +213,17 @@ def main():
     analyzer.run()
 
 
+def handle_exceptions(exception, traceback):
+    print(traceback)
+    error(str(exception))
+
+
 if __name__ == "__main__":
+    ipc.handle_exceptions = handle_exceptions
+
     try:
         main()
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        handle_exceptions(e, traceback.format_exc())

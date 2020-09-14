@@ -169,12 +169,12 @@ class ViewSBAnalyzer:
         """ Returns true if the analyzer process should halt. """
 
         # If the frontend has died, we should terminate.
-        if not self.frontend.is_alive():
+        if self.frontend.is_alive() and self.backend.is_alive():
+            return False
+        else:
             return True
 
         # TODO: check termination conditions?
-
-        return False
 
 
     def run(self):

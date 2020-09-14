@@ -485,6 +485,11 @@ class QtFrontend(ViewSBFrontend):
         Note: Since this is called via a QTimer signal, this method runs in the UI thread.
         """
 
+        # If the process manager told us to stop (which might happen if e.g. the backend exits),
+        # then stop and exit.
+        if self.termination_event.is_set():
+            self.app.closeAllWindows()
+
         packet_list = []
 
         try:

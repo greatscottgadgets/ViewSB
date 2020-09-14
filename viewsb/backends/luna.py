@@ -13,6 +13,12 @@ try:
         USBAnalyzerConnection, \
         USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_LOW
 
+    SPEEDS = {
+        'high': USB_SPEED_HIGH,
+        'full': USB_SPEED_FULL,
+        'low':  USB_SPEED_LOW
+    }
+
 except (ImportError, ModuleNotFoundError):
     pass
 
@@ -22,13 +28,6 @@ class LUNABackend(ViewSBBackend):
 
     UI_NAME = "luna"
     UI_DESCRIPTION = "LUNA hardware analyzers"
-
-
-    SPEEDS = {
-        'high': USB_SPEED_HIGH,
-        'full': USB_SPEED_FULL,
-        'low':  USB_SPEED_LOW
-    }
 
 
     @staticmethod
@@ -41,11 +40,11 @@ class LUNABackend(ViewSBBackend):
         return None
 
 
-    @classmethod
-    def speed_from_string(cls, string):
+    @staticmethod
+    def speed_from_string(string):
 
         try:
-            return cls.SPEEDS[string]
+            return SPEEDS[string]
         except KeyError:
             return string
 
@@ -54,7 +53,7 @@ class LUNABackend(ViewSBBackend):
     def add_options(cls, parser):
 
         # Parse user input and try to extract our class options.
-        parser.add_argument('--speed', dest='capture_speed', default='high', choices=cls.SPEEDS.keys(),
+        parser.add_argument('--speed', dest='capture_speed', default='high', choices=SPEEDS.keys(),
             help="The speed of the USB data to capture.")
 
 

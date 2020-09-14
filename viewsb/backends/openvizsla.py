@@ -13,6 +13,13 @@ from ..packet import USBPacket
 try:
     from openvizsla import OVDevice, OVCaptureUSBSpeed, USBEventSink
 
+    SPEEDS = {
+        'high': OVCaptureUSBSpeed.HIGH,
+        'full': OVCaptureUSBSpeed.FULL,
+        'low':  OVCaptureUSBSpeed.LOW
+    }
+
+
     class ViewSBEventSink(USBEventSink):
         """ OpenVizsla USB event sink that submits packets for decoding. """
 
@@ -68,12 +75,6 @@ class OpenVizslaBackend(ViewSBBackend):
     UI_NAME = "openvizsla"
     UI_DESCRIPTION = "OpenVizsla hardware analyzers"
 
-    SPEEDS = {
-        'high': OVCaptureUSBSpeed.HIGH,
-        'full': OVCaptureUSBSpeed.FULL,
-        'low':  OVCaptureUSBSpeed.LOW
-    }
-
 
     @staticmethod
     def reason_to_be_disabled():
@@ -85,11 +86,11 @@ class OpenVizslaBackend(ViewSBBackend):
         return None
 
 
-    @classmethod
-    def speed_from_string(cls, string):
+    @staticmethod
+    def speed_from_string(string):
 
         try:
-            return cls.SPEEDS[string]
+            return SPEEDS[string]
         except KeyError:
             return string
 
@@ -97,7 +98,7 @@ class OpenVizslaBackend(ViewSBBackend):
     @classmethod
     def add_options(cls, parser):
 
-        parser.add_argument('--speed', default='high', choices=cls.SPEEDS.keys(),
+        parser.add_argument('--speed', default='high', choices=SPEEDS.keys(),
             help="The speed of the USB data to capture.")
 
 

@@ -27,17 +27,19 @@ setup(
     author='Katherine J. Temkin',
     author_email='k@ktemkin.com',
     tests_require=[''],
-
-    # FIXME: don't require all of the backends; move some to 'extras_require'
     install_requires= [
         'construct',
         'bitstruct',
         'tableprint',
-        'facedancer',
-        'greatfet',
-        'pyopenvizsla',
         'urwid'
     ],
+    extras_require={
+        'luna': ['luna'],
+        'openvizla': ['pyopenvizsla'],
+        'phywhisperer': ['phywhisperer'],
+        'rhododendron': ['greatfet'],
+        'usbproxy': ['facedancer'],
+    },
     dependency_links=['git+https://git@github.com/usb-tools/pyopenvizsla.git@master#egg=pyopenvizsla'],
     description='python-based USB Analyzer toolkit (and USB analyzer)',
     long_description='python-based USB Analyzer toolkit (and USB analyzer)', # FIXME
@@ -58,5 +60,4 @@ setup(
         'Topic :: Scientific/Engineering',
         'Topic :: Security',
         ],
-    extras_require={}
 )

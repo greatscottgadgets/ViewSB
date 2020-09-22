@@ -97,6 +97,9 @@ class GtkFrontend(ViewSBFrontend):
 
         self._builder.connect_signals(self._GtkHandler(self))
 
+        self._panned_data = self._builder.get_object('pannedData')
+        self._panned_data.set_position(-1)
+
         self._scrolledwindowData = self._builder.get_object('scrolledwindowData')
 
         self._treeview_data = self._builder.get_object('treeviewData')
@@ -105,6 +108,8 @@ class GtkFrontend(ViewSBFrontend):
         self._init_treeview_data_columns()
 
         self._panned_data_details = self._builder.get_object('pannedDataDetails')
+        self._panned_data_details.set_position(-1)
+
         self._label_hexview = self._builder.get_object('labelHexview')
 
         self._treeview_data_detail = self._builder.get_object('treeviewDataDetail')

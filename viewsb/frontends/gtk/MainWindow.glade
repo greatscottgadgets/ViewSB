@@ -8,7 +8,7 @@
     <property name="default_height">800</property>
     <signal name="remove" handler="on_application_exit" swapped="no"/>
     <child>
-      <object class="GtkPaned">
+      <object class="GtkPaned" id="pannedData">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="position">1050</property>
@@ -16,6 +16,7 @@
           <object class="GtkScrolledWindow" id="scrolledwindowData">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
             <property name="shadow_type">in</property>
             <signal name="size-allocate" handler="on_scrolledwindowdata_size_allocate" swapped="no"/>
             <child>
@@ -31,14 +32,13 @@
           </object>
           <packing>
             <property name="resize">False</property>
-            <property name="shrink">True</property>
+            <property name="shrink">False</property>
           </packing>
         </child>
         <child>
           <object class="GtkPaned" id="pannedDataDetails">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="vexpand">False</property>
             <property name="orientation">vertical</property>
             <property name="position">400</property>
             <child>
@@ -50,14 +50,16 @@
                 </child>
               </object>
               <packing>
-                <property name="resize">False</property>
-                <property name="shrink">True</property>
+                <property name="resize">True</property>
+                <property name="shrink">False</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="labelHexview">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
                 <property name="label" translatable="yes">
 </property>
                 <property name="wrap">True</property>
@@ -65,14 +67,14 @@
                 <property name="track_visited_links">False</property>
               </object>
               <packing>
-                <property name="resize">True</property>
-                <property name="shrink">True</property>
+                <property name="resize">False</property>
+                <property name="shrink">False</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="resize">True</property>
-            <property name="shrink">True</property>
+            <property name="shrink">False</property>
           </packing>
         </child>
       </object>

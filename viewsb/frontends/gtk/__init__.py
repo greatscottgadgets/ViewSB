@@ -38,6 +38,11 @@ class GtkFrontend(ViewSBFrontend):
         '_id': GObject.TYPE_ULONG,
     }
 
+    _DATA_DETAIL = {
+        'Property': str,
+        'Value': str,
+    }
+
     class _GtkHandler:
         def __init__(self, parent):
             self.parent = parent
@@ -51,7 +56,13 @@ class GtkFrontend(ViewSBFrontend):
             model, treeiter = treeview.get_selection().get_selected()
             if treeiter is not None:
                 packet = self.parent._packets[model[treeiter][8]]
+
+                # fill hexview
                 self.parent._label_hexview.set_text(' '.join(f'{b:02x}' for b in packet.data))
+
+                # fill packet details
+                if detail_fields := packet.get_detail_fields():
+                    self.parent.update_detail_fields(detail_fields)
 
         def on_scrolledwindowdata_size_allocate(self, widget, *args):
             # autoscroll
@@ -96,6 +107,11 @@ class GtkFrontend(ViewSBFrontend):
         self._panned_data_details = self._builder.get_object('pannedDataDetails')
         self._label_hexview = self._builder.get_object('labelHexview')
 
+        self._treeview_data_detail = self._builder.get_object('treeviewDataDetail')
+        self._treestore_data_detail = Gtk.TreeStore(*self._DATA_DETAIL.values())
+        self._treeview_data_detail.set_model(self._treestore_data_detail)
+        self._init_treeview_data_detail_columns()
+
         self._window = self._builder.get_object('window')
         self._window.show_all()
 
@@ -108,6 +124,12 @@ class GtkFrontend(ViewSBFrontend):
             cell = Gtk.CellRendererText()
             col = Gtk.TreeViewColumn(column, cell, text=i)
             self._treeview_data.append_column(col)
+
+    def _init_treeview_data_detail_columns(self):
+        for i, column in enumerate(self._DATA_DETAIL.keys()):
+            cell = Gtk.CellRendererText()
+            col = Gtk.TreeViewColumn(column, cell, text=i)
+            self._treeview_data_detail.append_column(col)
 
     def handle_incoming_packet(self, packet):
         self._packets.append(packet)
@@ -131,3 +153,28 @@ class GtkFrontend(ViewSBFrontend):
             self.handle_communications()
 
         self.handle_termination()
+
+    def update_detail_fields(self, detail_fields):
+        self._treestore_data_detail.clear()
+
+        for table in detail_fields:
+            title = table[0]
+            fields = table[1]
+
+            parent = self._treestore_data_detail.append(None, (title, ''))
+
+            # the usual case: a str:str dict
+            if isinstance(fields, dict):
+                for key, value in fields.items():
+                    self._treestore_data_detail.append(parent, (str(key), str(value)))
+
+            # sometimes it'll just be a 1-column list
+            elif isinstance(fields, list):
+                for item in fields:
+                    self._treestore_data_detail.append(parent, (str(item), ''))
+
+            # sometimes it'll just be a string, or a `bytes` instance
+            else:
+                self._treestore_data_detail.append(parent, (str(fields), ''))
+
+        self._treeview_data_detail.expand_all()

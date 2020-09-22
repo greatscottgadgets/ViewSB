@@ -42,7 +42,17 @@
             <property name="orientation">vertical</property>
             <property name="position">400</property>
             <child>
-              <placeholder/>
+              <object class="GtkTreeView" id="treeviewDataDetail">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection"/>
+                </child>
+              </object>
+              <packing>
+                <property name="resize">False</property>
+                <property name="shrink">True</property>
+              </packing>
             </child>
             <child>
               <object class="GtkLabel" id="labelHexview">

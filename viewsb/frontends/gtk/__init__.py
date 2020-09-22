@@ -1,0 +1,119 @@
+"""
+GTK Frontend for ViewSB
+
+
+This file is part of ViewSB
+"""
+
+import os.path
+import threading
+import time
+
+try:
+    import gi
+
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk, GObject
+
+    class GtkFrontendApp(Gtk.ApplicationWindow):
+        pass
+except ImportError:
+    pass
+
+from ...frontend import ViewSBFrontend
+
+
+class GtkFrontend(ViewSBFrontend):
+    UI_NAME = 'gtk'
+    UI_DESCRIPTION = 'unstable GUI in GTK'
+
+    _COLUMNS = {
+        'Timestamp': GObject.TYPE_ULONG,
+        'Device': GObject.TYPE_UINT,
+        'Endpoint': GObject.TYPE_UINT,
+        'Direction': str,
+        'Length': GObject.TYPE_UINT,
+        'Summary': str,
+        'Status': str,
+        'Data': str,
+    }
+
+    class _GtkHandler:
+        def __init__(self, app_run_event=None):
+            self.app_run_event = app_run_event
+
+        def on_application_exit(self, *args):
+            Gtk.main_quit()
+            if self.app_run_event:
+                self.app_run_event.clear()
+
+        def on_scrolledwindowdata_size_allocate(self, widget, *args):
+            # autoscroll
+            # TODO: skip when row is selected
+            adjustment = widget.get_vadjustment()
+            adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
+
+    @staticmethod
+    def reason_to_be_disabled():
+        try:
+            import gi
+        except ImportError:
+            return 'PyGObject (gi) not available'
+
+        try:
+            gi.require_version("Gtk", "3.0")
+        except ImportError:
+            return 'GTK 3.0 not available'
+
+        return None
+
+    def __init__(self):
+        self._app_run_event = threading.Event()
+
+        self._ui = {}
+        for ui in ('MainWindow',):
+            self._ui[ui] = os.path.join(os.path.dirname(__file__), f'{ui}.glade')
+
+        self._builder = Gtk.Builder()
+        self._builder.add_from_file(self._ui['MainWindow'])
+
+        self._builder.connect_signals(self._GtkHandler(self._app_run_event))
+
+        self._scrolledwindowData = self._builder.get_object('scrolledwindowData')
+
+        self._treeview_data = self._builder.get_object('treeviewData')
+        self._liststore_data = Gtk.ListStore(*self._COLUMNS.values())
+        self._treeview_data.set_model(self._liststore_data)
+        self._init_treeview_data_columns()
+
+        self._window = self._builder.get_object('window')
+        self._window.show_all()
+
+        self._gtk_thread = threading.Thread(target=Gtk.main)
+
+    def _init_treeview_data_columns(self):
+        for i, column in enumerate(self._COLUMNS.keys()):
+            cell = Gtk.CellRendererText()
+            col = Gtk.TreeViewColumn(column, cell, text=i)
+            self._treeview_data.append_column(col)
+
+    def handle_incoming_packet(self, packet):
+        self._liststore_data.append((
+            packet.timestamp,
+            packet.device_address,
+            packet.endpoint_number,
+            packet.direction.name,
+            len(packet.data),
+            packet.summarize(),
+            packet.summarize_status(),
+            ' '.join(f'{b:02x}' for b in packet.data),
+        ))
+
+    def run(self):
+        self._gtk_thread.start()
+        self._app_run_event.set()
+
+        while self._app_run_event.is_set():
+            self.handle_communications()
+
+        self.handle_termination()

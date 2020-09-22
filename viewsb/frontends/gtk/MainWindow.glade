@@ -22,6 +22,7 @@
               <object class="GtkTreeView" id="treeviewData">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <signal name="cursor-changed" handler="on_packet_cursor_changed" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeselectionData"/>
                 </child>
@@ -44,7 +45,19 @@
               <placeholder/>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkLabel" id="labelHexview">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">
+</property>
+                <property name="wrap">True</property>
+                <property name="selectable">True</property>
+                <property name="track_visited_links">False</property>
+              </object>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">True</property>
+              </packing>
             </child>
           </object>
           <packing>

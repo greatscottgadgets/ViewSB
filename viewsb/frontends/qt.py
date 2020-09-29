@@ -379,6 +379,17 @@ class QtFrontend(ViewSBFrontend):
         return None
 
 
+    @staticmethod
+    def _stringify_list(lst):
+        """
+        Tiny helper than runs the str constructor on every item in a list, but specifically handles two cases:
+        1) the object in question is None, which we instead want to display as an empty string,
+        2) the resulting string contains a null character, which Qt doesn't like, so we'll
+        represent it to the user as, literally, \0.
+        """
+        return [str(x).replace('\0', r'\0') if x is not None else '' for x in lst]
+
+
     def _create_item_for_packet(self, viewsb_packet):
         """ Creates a QTreeWidgetItem for a given ViewSBPacket.
 
@@ -388,8 +399,6 @@ class QtFrontend(ViewSBFrontend):
         Returns a QTreeWidgetItem.
         """
 
-        stringify_list = lambda l : [str(x) if x is not None else '' for x in l]
-
         def get_packet_string_array(viewsb_packet):
             """ Tiny helper to return and stringify the common fields used for the columns of tree items. """
 
@@ -397,7 +406,7 @@ class QtFrontend(ViewSBFrontend):
 
             length = len(viewsb_packet.data) if viewsb_packet.data is not None else ''
 
-            return stringify_list([
+            return self._stringify_list([
                 viewsb_packet.summarize(),
                 viewsb_packet.device_address,
                 viewsb_packet.endpoint_number,
@@ -545,16 +554,16 @@ class QtFrontend(ViewSBFrontend):
             # The usual case: a str:str dict.
             if isinstance(fields, dict):
                 for key, value in fields.items():
-                    children.append(QTreeWidgetItem([str(key), str(value)]))
+                    children.append(QTreeWidgetItem(self._stringify_list([key, value])))
 
             # Sometimes it'll just be a 1-column list.
             elif isinstance(fields, list):
                 for item in fields:
-                    children.append(QTreeWidgetItem([str(item)]))
+                    children.append(QTreeWidgetItem(self._stringify_list([item])))
 
             # Sometimes it'll just be a string, or a `bytes` instance.
             else:
-                children.append(QTreeWidgetItem([str(fields)]))
+                children.append(QTreeWidgetItem(self._stringify_list([fields])))
 
             root.addChildren(children)
 

@@ -296,7 +296,7 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
         string_payload = self.data[2:]
 
         if self.index:
-            return string_payload.decode('utf-16', 'replace')
+            return string_payload.decode('utf-16', 'backslashreplace')
         else:
             return ', '.join(self._get_supported_language_strings(string_payload))
 

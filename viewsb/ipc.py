@@ -7,6 +7,21 @@ This file is part of ViewSB
 """
 
 import multiprocessing
+import traceback
+
+
+class Process(multiprocessing.Process):
+    """ Process class that forwards exceptions to the parent """
+
+    def __init__(self, exception_conn, *args, **kwargs):
+        multiprocessing.Process.__init__(self, daemon=True, *args, **kwargs)
+        self._exception_conn = exception_conn
+
+    def run(self):
+        try:
+            multiprocessing.Process.run(self)
+        except Exception as e:
+            self._exception_conn.send((e, traceback.format_exc()))
 
 
 class ProcessManager:
@@ -15,15 +30,21 @@ class ProcessManager:
     Subclasses are used by the analyzer thread to spawn Frontend and Backend processes.
     """
 
-    def __init__(self, remote_class, **remote_arguments):
+    def __init__(self, remote_class, in_except_conn, out_except_conn, **remote_arguments):
 
         # Create our output queue and our termination-signaling event.
         self.data_queue        = multiprocessing.Queue()
         self.termination_event = multiprocessing.Event()
+        self._in_except_conn   = in_except_conn
 
         # And put together our arguments.
-        self.remote_arguments  = \
-             [remote_class, remote_arguments, self.data_queue, self.termination_event]
+        self.remote_arguments = [
+            remote_class,
+            remote_arguments,
+            self.data_queue,
+            self.termination_event,
+            out_except_conn,
+        ]
 
 
     def is_alive(self):
@@ -46,8 +67,12 @@ class ProcessManager:
         name = self._get_process_name()
 
         # Create and start our background process.
-        self.remote_process = \
-            multiprocessing.Process(target=self._subordinate_process_entry, args=self.remote_arguments, name=name)
+        self.remote_process = Process(
+            self._in_except_conn,
+            target=self._subordinate_process_entry,
+            args=self.remote_arguments,
+            name=name
+        )
         self.remote_process.start()
 
 
@@ -75,7 +100,7 @@ class ProcessManager:
 
 
     @staticmethod
-    def _subordinate_process_entry(remote_class, arguments, data_queue, termination_event):
+    def _subordinate_process_entry(remote_class, arguments, data_queue, termination_event, exception_conn):
         """
         Helper function for running a remote with a UI 'thread'. This method should usually be called in a subordinate
         process managed by multiprocessing. You probably want the public API of ViewSBFrontendProcess/ViewSBBackendProcess.
@@ -85,7 +110,7 @@ class ProcessManager:
         task = remote_class(**arguments)
 
         # Pass the new 'task' our IPC mechanisms, and then standard input.
-        task.set_up_ipc(data_queue, termination_event)
+        task.set_up_ipc(data_queue, termination_event, exception_conn)
 
         # Finally, run our 'task' until it terminates.
         try:

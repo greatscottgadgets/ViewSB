@@ -148,10 +148,11 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
 
         self.data_queue        = None
         self.termination_event = None
+        self._exception_conn   = None
         self.stdin             = None
 
 
-    def set_up_ipc(self, data_queue, termination_event):
+    def set_up_ipc(self, data_queue, termination_event, exception_conn):
         """
         Function that accepts the synchronization objects we'll use for input. Must be called prior to
         calling run().
@@ -164,6 +165,7 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
         # Store our IPC primitives, ready for future use.
         self.data_queue        = data_queue
         self.termination_event = termination_event
+        self._exception_conn   = exception_conn
 
         # Re-open stdin. Note that we don't try to pass stdin between the processes,
         # as the object isn't picklable, and we spawned a new process instead of forking.
@@ -230,10 +232,18 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
 
         # Capture infinitely until our termination signal is set.
         while not self.termination_event.is_set():
+            # Handle exceptions
+            if self._exception_conn.poll():
+                self.handle_exception(*self._exception_conn.recv())
+
             self.handle_communications()
 
         # Allow the subclass to handle any cleanup it needs to do.
         self.handle_termination()
+
+
+    def handle_exception(self, exception, traceback):
+        print(traceback, end='')
 
 
     def handle_termination(self):

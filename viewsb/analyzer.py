@@ -57,13 +57,27 @@ class ViewSBAnalyzer:
         # Create our analysis queue.
         self.analysis_queue = queue.Queue()
 
+        # Create our exception pipes
+        self._pipe_send_backend_exception, self._pipe_recv_backend_exception = multiprocessing.Pipe()
+        self._pipe_send_frontend_exception, self._pipe_recv_frontend_exception = multiprocessing.Pipe()
+
         # Create -- but don't start -- our backend process.
         backend_class, backend_arguments = backend
-        self.backend = ViewSBBackendProcess(backend_class, **backend_arguments)
+        self.backend = ViewSBBackendProcess(
+            backend_class,
+            self._pipe_send_backend_exception,
+            None,
+            **backend_arguments,
+        )
 
         # Create -- but don't start -- our frontend process.
         frontend_class, frontend_arguments = frontend
-        self.frontend = ViewSBFrontendProcess(frontend_class, **frontend_arguments)
+        self.frontend = ViewSBFrontendProcess(
+            frontend_class,
+            self._pipe_send_frontend_exception,
+            self._pipe_recv_backend_exception,  # The frontend manages backend exceptions
+            **frontend_arguments,
+        )
 
 
     def add_decoder(self, decoder, *arguments, **kwargs):

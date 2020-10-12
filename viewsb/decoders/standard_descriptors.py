@@ -12,8 +12,8 @@ from construct import this
 import usb_protocol
 
 from usb_protocol.types.descriptor import DescriptorFormat, DescriptorField, DescriptorNumber
-from usb_protocol.types.descriptors import DeviceDescriptor, ConfigurationDescriptor, InterfaceDescriptor
-from usb_protocol.types.descriptors import EndpointDescriptor, DeviceQualifierDescriptor, StringDescriptor
+from usb_protocol.types.descriptors.partial import DeviceDescriptor, ConfigurationDescriptor, InterfaceDescriptor
+from usb_protocol.types.descriptors.partial import EndpointDescriptor, DeviceQualifierDescriptor, StringDescriptor
 
 from .standard_requests import GetDescriptorRequest
 

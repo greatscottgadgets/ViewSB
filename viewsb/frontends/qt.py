@@ -494,6 +494,11 @@ class QtFrontend(ViewSBFrontend):
         Note: Since this is called via a QTimer signal, this method runs in the UI thread.
         """
 
+        # Handle exceptions
+        if self._exception_conn.poll():
+            self.handle_exception(*self._exception_conn.recv())
+            # TODO: overide handle_exception to show a Qt dialog message
+
         # If the process manager told us to stop (which might happen if e.g. the backend exits),
         # then stop and exit.
         if self.termination_event.is_set():

@@ -31,7 +31,8 @@ setup(
         'construct',
         'bitstruct',
         'tableprint',
-        'urwid'
+        'urwid',
+        'usb_protocol',
     ],
     extras_require={
         'luna': ['luna'],
@@ -40,7 +41,10 @@ setup(
         'rhododendron': ['greatfet'],
         'usbproxy': ['facedancer'],
     },
-    dependency_links=['git+https://git@github.com/usb-tools/pyopenvizsla.git@master#egg=pyopenvizsla'],
+    dependency_links=[
+        'git+https://git@github.com/usb-tools/pyopenvizsla.git@master#egg=pyopenvizsla',
+        'git+https://git@github.com/usb-tools/python-usb-protocol.git@master#egg=usb_protocol',
+    ],
     description='python-based USB Analyzer toolkit (and USB analyzer)',
     long_description='python-based USB Analyzer toolkit (and USB analyzer)', # FIXME
     packages=find_packages(),

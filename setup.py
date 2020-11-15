@@ -45,7 +45,6 @@ setup(
     long_description='python-based USB Analyzer toolkit (and USB analyzer)', # FIXME
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('viewsb/frontends', ['viewsb/frontends/qt.ui'])],
     platforms='any',
     classifiers = [
         'Programming Language :: Python',

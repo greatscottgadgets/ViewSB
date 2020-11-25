@@ -69,6 +69,7 @@ class TUIFrontend(ViewSBFrontend):
         ('key', "+"), "=expand ",
         ('key', "-"), "=collapse  ",
         ('key', "a"), "utoscroll ",
+        ('key', "c"), "lear ",
         ('key', "q"), "uit ",
     ]
 
@@ -145,7 +146,7 @@ class TUIFrontend(ViewSBFrontend):
         # Start off with an empty hex view.
         self.hex_data_rows.clear()
 
-        if packet.get_raw_data is None:
+        if packet is None or packet.get_raw_data is None:
             return
 
         data = packet.get_raw_data()
@@ -194,10 +195,13 @@ class TUIFrontend(ViewSBFrontend):
     def populate_decoder_view(self, packet):
         """ Populate the top-right panel with the decoded version of a given packet. """
 
-        fields = packet.get_detail_fields()
-
         # Start off with an empty decoder view.
         self.decoder_rows.clear()
+
+        if packet is None:
+            return
+
+        fields = packet.get_detail_fields()
 
         if not fields:
             return
@@ -304,10 +308,18 @@ class TUIFrontend(ViewSBFrontend):
             self.loop.process_input(['end', 'a'])
 
 
-    def unhandled_input(self, k):
+    def unhandled_input(self, key):
         """ Handle any input that's not handled by e.g. the focused widget. """
 
-        if k in ('q', 'Q'):
+        if key == 'c':
+            self.packet_list.original_widget.body.set_focus(self.root_node) # idk why it needs this
+            self.packet_list.original_widget.focus_position = self.root_node
+            self.packet_list.original_widget.autoscroll = True
+            self.packet_focus_changed(None, None)
+
+            self.root_node.remove_all_packets()
+
+        elif key in ('q', 'Q'):
             raise urwid.ExitMainLoop()
 
 
@@ -496,6 +508,12 @@ class VSBPacketNode(urwid.ParentNode):
             self._child_keys = [self.next_key()]
 
         self.get_value().accept_packet(packet)
+        self._invalidate()
+
+
+    def remove_all_packets(self):
+        self.get_value().clear_packets()
+        self._child_keys = []
         self._invalidate()
 
 
@@ -768,6 +786,8 @@ class TUIPacketCollection:
         # Start off with an empty list of subordinate packets.
         self.subordinate_packets = []
 
+    def clear_packets(self):
+        self.subordinate_packets = []
 
     def accept_packet(self, packet):
         """ Accepts a new subordinate packet into the collection. """

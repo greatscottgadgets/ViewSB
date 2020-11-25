@@ -72,8 +72,18 @@ class TUIFrontend(ViewSBFrontend):
     BACKGROUND_REFRESH_INTERVAL = 0.25
 
 
-    def __init__(self):
+    @classmethod
+    def add_options(cls, parser):
+        """ Add command-line options for the TUI frontend. """
+
+        parser.add_argument('--ascii-only', default=False, action='store_true',
+            help="draw widgets with ASCII even on UTF-8 terminals (may improve rendering)")
+
+
+    def __init__(self, ascii_only):
         """ Initializes the UI for the TUI widget. """
+
+        self.ascii_only = ascii_only
 
         # For now: create a really inefficient in-memory packet store,
         # and anchor our tree-view to that.
@@ -487,23 +497,22 @@ class VSBPacketNode(urwid.ParentNode):
 class VSBPacketWidget(urwid.TreeWidget):
     """ Widget that renders tree elements as text. """
 
-    # If we're in utf8 mode,use fancier widgets than we would in ASCII mode.
-    if urwid.get_encoding_mode() == "utf8":
-        ICONS = {
-            'unexpanded': urwid.SelectableIcon('⊞', 0),
-            'expanded':   urwid.SelectableIcon('⊟', 0),
-            'leaf':       urwid.Text('•'),
-            'in':         urwid.Text(('data', '↩  IN')),
-            'out':        urwid.Text(('data', 'OUT ↪')),
-        }
-    else:
-        ICONS = {
-            'unexpanded': urwid.SelectableIcon('+', 0),
-            'expanded':   urwid.SelectableIcon('-', 0),
-            'leaf':       urwid.Text('*'),
-            'in':         urwid.Text('<I'),
-            'out':        urwid.Text('O>')
-        }
+    # If we're in utf8 mode, use fancier widgets than we would in ASCII mode.
+    UTF8_ICONS = {
+        'unexpanded': urwid.SelectableIcon('⊞', 0),
+        'expanded':   urwid.SelectableIcon('⊟', 0),
+        'leaf':       urwid.Text('•'),
+        'in':         urwid.Text(('data', '↩  IN')),
+        'out':        urwid.Text(('data', 'OUT ↪')),
+    }
+
+    ASCII_ICONS = {
+        'unexpanded': urwid.SelectableIcon('+', 0),
+        'expanded':   urwid.SelectableIcon('-', 0),
+        'leaf':       urwid.Text('*'),
+        'in':         urwid.Text('<I'),
+        'out':        urwid.Text('O>')
+    }
 
 
     def __init__(self, parent, packet, frontend, focused=False):
@@ -512,6 +521,11 @@ class VSBPacketWidget(urwid.TreeWidget):
         self.frontend = frontend
         self.is_root = False
         self.focused = focused
+
+        if urwid.get_encoding_mode() == "utf8" and not frontend.ascii_only:
+            self.ICONS = self.UTF8_ICONS
+        else:
+            self.ICONS = self.ASCII_ICONS
 
         super().__init__(parent)
 

@@ -343,7 +343,7 @@ class PacketListBox(urwid.TreeListBox):
             self.focus_changed_callback(focused_node, focused_node.get_value())
 
         # If we had a previously focused node, let it know it's no longer focused.
-        if self.last_focus:
+        if self.last_focus and self.last_focus != focused_node:
             self.last_focus.rerender_with_focus(False)
 
         # And update our previously-focused-node.

@@ -47,6 +47,10 @@ class TUIFrontend(ViewSBFrontend):
         ('icon',       'dark gray', ''),
         ('icon_focus', 'dark gray',  'dark blue'),
 
+        ('popup', 'white', 'black'),
+        ('popup_title', 'white', 'black', 'bold'),
+        ('popup_error', 'light red', 'black', 'bold'),
+        ('popup_summary', 'light gray', 'black'),
     ]
 
     # Mapping that maps normal/unfocused class names to their focused equivalents.
@@ -269,6 +273,10 @@ class TUIFrontend(ViewSBFrontend):
     def handle_communications(self):
         """ Function that is called to check the analyzer for new packets. """
 
+        # Handle exceptions
+        if self._exception_conn.poll():
+            self.handle_exception(*self._exception_conn.recv())
+
         # Hook the analyzer to automatically schedule a subsequent communication each time
         # we check for packets.
         super().handle_communications()
@@ -303,6 +311,21 @@ class TUIFrontend(ViewSBFrontend):
             raise urwid.ExitMainLoop()
 
 
+    def handle_exception(self, exception, traceback):
+        """Override the default implementation to properly show exceptions with urwid"""
+        popup = ExceptionDialog('Oops, we received an error from the backend!', traceback)
+        self.loop.widget = urwid.Overlay(
+            popup,
+            self.loop.widget,
+            align='center',
+            valign='middle',
+            width=100,
+            height=popup.height,
+        )
+        def close_popup(button):
+            self.loop.widget = self.loop.widget.bottom_w
+        urwid.connect_signal(popup, 'close', close_popup)
+
     def run(self):
         """Run the frontend."""
 
@@ -323,6 +346,26 @@ class TUIFrontend(ViewSBFrontend):
 
         # FIXME: signal for termination, here?
 
+
+class ExceptionDialog(urwid.WidgetWrap):
+    """A dialog that appears with an exception is thrown"""
+    signals = ['close']
+
+    def __init__(self, title, text):
+        self.height = len(text.split('\n')) + 2
+        close_button = urwid.Button('Close')
+        urwid.connect_signal(
+            close_button,
+            'click',
+            lambda button: self._emit('close'),
+        )
+        pile = urwid.Pile([
+            urwid.AttrWrap(urwid.Text(title), 'popup_error'),
+            urwid.AttrWrap(urwid.Text(text), 'popup_summary'),
+            close_button,
+        ])
+        fill = urwid.Filler(pile)
+        self.__super.__init__(urwid.AttrWrap(fill, 'popup'))
 
 
 class PacketListBox(urwid.TreeListBox):

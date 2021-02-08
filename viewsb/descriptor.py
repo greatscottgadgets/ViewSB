@@ -168,6 +168,7 @@ class DescriptorTransfer(ViewSBPacket):
 
         # While we are still getting descriptors, try to handle any left-over data.
         while table_or_string:
+            from construct import ValidationError
 
             # Keep track of our position in the subordinate array.
             subordinate_number = len(self.subordinates)
@@ -175,9 +176,12 @@ class DescriptorTransfer(ViewSBPacket):
             # Clip off any data parsed.
             data = data[bytes_parsed:]
 
-            # Call our "data remaining" callback.
-            description, table_or_string, raw, bytes_parsed = \
-                self.handle_data_remaining_after_decode(data, subordinate_number)
+            try:
+                # Call our "data remaining" callback.
+                description, table_or_string, raw, bytes_parsed = \
+                    self.handle_data_remaining_after_decode(data, subordinate_number)
+            except ValidationError:
+                break
 
             #If we were able to parse more from the remaining data, return it.
             if table_or_string:

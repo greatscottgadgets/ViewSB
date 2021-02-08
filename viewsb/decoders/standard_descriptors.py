@@ -167,7 +167,7 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
             # FIXME: describe the type of interfaces?
             # FIXME: provide subordinate descriptor count
             return "{} interface(s)".format(decoded['bNumInterfaces'])
-        except KeyError:
+        except (KeyError, TypeError):
             return super().summarize_data()
 
 

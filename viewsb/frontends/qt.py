@@ -456,6 +456,13 @@ class QtFrontend(ViewSBFrontend):
 
         self.app = QApplication.instance() or QApplication([])
 
+        try:
+            import qt_material
+
+            qt_material.apply_stylesheet(self.app, 'light_blue.xml')
+        except ImportError:
+            pass
+
         self.ui_file = QtCore.QFile(os.path.dirname(os.path.realpath(__file__)) + '/qt.ui')
         self.loader = QUiLoader()
         self.loader.registerCustomWidget(ViewSBQTreeWidget)

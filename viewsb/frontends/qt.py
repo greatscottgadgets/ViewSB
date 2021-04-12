@@ -15,14 +15,13 @@ from ..frontend import ViewSBFrontend
 
 
 try:
-    import PySide2
-    from PySide2 import QtCore, QtWidgets
-    from PySide2.QtWidgets import QApplication, QMainWindow
-    from PySide2.QtWidgets import QTreeWidget, QTreeWidgetItem, QTableView, QAbstractItemView
-    from PySide2.QtCore import Qt, QSize, QPoint, QItemSelection, QItemSelectionRange
-    from PySide2.QtGui import QColor, QFont, QStandardItemModel, QStandardItem
-    from PySide2.QtUiTools import QUiLoader
-
+    import PySide6
+    from PySide6 import QtCore, QtWidgets
+    from PySide6.QtWidgets import QApplication, QMainWindow
+    from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QTableView, QAbstractItemView, QHeaderView
+    from PySide6.QtCore import Qt, QSize, QPoint, QItemSelection, QItemSelectionRange
+    from PySide6.QtGui import QColor, QFont, QStandardItemModel, QStandardItem
+    from PySide6.QtUiTools import QUiLoader
 
     class ViewSBQTreeWidget(QTreeWidget):
         """
@@ -108,7 +107,7 @@ try:
             self.hex_data = None
 
             # Determine how wide ASCII columns should be.
-            self.ascii_width = self.fontMetrics().width('m')
+            self.ascii_width = self.fontMetrics().horizontalAdvance('m')
 
             # HACK: Get how much space a hex item needs by asking temporarily creating one, and then asking Qt,
             # because self.fontMetrics().width('mm') isn't enough, apparently, unlike above.
@@ -372,9 +371,9 @@ class QtFrontend(ViewSBFrontend):
     @staticmethod
     def reason_to_be_disabled():
         try:
-            import PySide2
+            import PySide6
         except ImportError:
-            return "PySide2 (Qt library) not available."
+            return "PySide6 (Qt library) not available."
 
         return None
 
@@ -455,7 +454,7 @@ class QtFrontend(ViewSBFrontend):
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)  # fix SIGINT handling - cleanly exit on ctrl+c
 
-        self.app = QApplication([])
+        self.app = QApplication.instance() or QApplication([])
 
         self.ui_file = QtCore.QFile(os.path.dirname(os.path.realpath(__file__)) + '/qt.ui')
         self.loader = QUiLoader()
@@ -479,8 +478,7 @@ class QtFrontend(ViewSBFrontend):
         self.window.usb_tree_widget.currentItemChanged.connect(self._tree_current_item_changed)
 
         self.window.usb_tree_widget = self.window.usb_tree_widget
-        self.window.usb_tree_widget.sortByColumn(0)
-
+        self.window.usb_tree_widget.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
         self.window.showMaximized()
 

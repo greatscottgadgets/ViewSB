@@ -439,7 +439,7 @@ class USBTransferGrouper(ViewSBDecoder):
 
         # For non-control endpoints, if more than 10 milliseconds have passed since the last packet,
         # heuristically start a new transfer.
-        if packet.endpoint_number != 0 and (packet.timestamp - last_packet.timestamp) > 10e3:
+        if packet.endpoint_number != 0 and (packet.timestamp - last_packet.timestamp).microseconds > 10e3:
             return True
 
 

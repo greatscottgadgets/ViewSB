@@ -30,22 +30,32 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
         """
 
         self.output_queue      = None
+        self.setup_queue       = None
+        self.ready             = None
         self.termination_event = None
 
 
-    def set_up_ipc(self, output_queue, termination_event, exception_conn):
+    def set_up_ipc(self, output_queue, setup_queue, ready, termination_event, exception_conn):
         """
         Method that accepts the synchronization objects we'll use for output. Must be called prior to
         calling run(). Usually called by the BackendProcess/FrontendProcess setup functions.
 
         Args:
             output_queue -- The Queue object that will be fed any USB data generated.
+            setup_queue -- The Queue object that will be fed the setup message log.
+            ready -- A synchronization event that is set when a backend is ready to start emitting packets.
             termination_event -- A synchronization event that is set when a capture is terminated.
         """
 
         # Store our IPC primitives, ready for future use.
         self.output_queue      = output_queue
+        self.setup_queue       = setup_queue
+        self.ready             = ready
         self.termination_event = termination_event
+
+
+    def setup(self):
+        """ Prepares the environment (eg: hardware, etc.) to start capturing. """
 
 
     def run_capture(self):
@@ -60,6 +70,13 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
 
     def run(self):
         """ Runs the given backend until the provided termination event is set. """
+
+        # Ensure our ready event isn't set.
+        self.ready.clear()
+
+        # Prepare the environment and signal the frontend we are ready.
+        self.setup()
+        self.ready.set()
 
         # Capture infinitely until our termination signal is set.
         while not self.termination_event.is_set():

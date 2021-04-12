@@ -61,10 +61,16 @@ class ViewSBAnalyzer:
         self._pipe_send_backend_exception, self._pipe_recv_backend_exception = multiprocessing.Pipe()
         self._pipe_send_frontend_exception, self._pipe_recv_frontend_exception = multiprocessing.Pipe()
 
+        # Create backend ready ipc variables
+        self._backend_setup_queue = multiprocessing.Queue()
+        self._backend_ready = multiprocessing.Event()
+
         # Create -- but don't start -- our backend process.
         backend_class, backend_arguments = backend
         self.backend = ViewSBBackendProcess(
             backend_class,
+            self._backend_setup_queue,
+            self._backend_ready,
             self._pipe_send_backend_exception,
             None,
             **backend_arguments,
@@ -74,6 +80,8 @@ class ViewSBAnalyzer:
         frontend_class, frontend_arguments = frontend
         self.frontend = ViewSBFrontendProcess(
             frontend_class,
+            self._backend_setup_queue,
+            self._backend_ready,
             self._pipe_send_frontend_exception,
             self._pipe_recv_backend_exception,  # The frontend manages backend exceptions
             **frontend_arguments,

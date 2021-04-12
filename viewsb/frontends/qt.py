@@ -465,12 +465,7 @@ class QtFrontend(ViewSBFrontend):
         # Swap columns 0 and 5 to put the expand arrow on the summary column.
         self.window.usb_tree_widget.header().swapSections(0, 5)
 
-        self.window.usb_tree_widget.setColumnWidth(self.COLUMN_TIMESTAMP, 120)
-        self.window.usb_tree_widget.setColumnWidth(self.COLUMN_DEVICE,    32)
-        self.window.usb_tree_widget.setColumnWidth(self.COLUMN_ENDPOINT,  24)
-        self.window.usb_tree_widget.setColumnWidth(self.COLUMN_DIRECTION, 42)
-        self.window.usb_tree_widget.setColumnWidth(self.COLUMN_LENGTH,    60)
-        self.window.usb_tree_widget.setColumnWidth(self.COLUMN_SUMMARY,   500)
+        self.window.usb_tree_widget.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
         self.window.update_timer = QtCore.QTimer()
         self.window.update_timer.timeout.connect(self._update)

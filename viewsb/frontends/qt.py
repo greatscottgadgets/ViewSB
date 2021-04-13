@@ -604,6 +604,8 @@ class QtFrontend(ViewSBFrontend):
     def run(self):
         """ Overrides ViewSBFrontend.run(). """
 
+        self.wait_for_backend_ready()
+
         # TODO: is there a better value than 100 ms? Should it be configurable by the Analyzer?
         self.window.update_timer.start(100)
         self.app.exec_()

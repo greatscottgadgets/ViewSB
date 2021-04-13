@@ -482,6 +482,9 @@ class QtFrontend(ViewSBFrontend):
         self.window.usb_tree_widget = self.window.usb_tree_widget
         self.window.usb_tree_widget.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
+
+    def ready(self):
+        """ Called when the backend is ready to stream. """
         self.window.showMaximized()
 
 

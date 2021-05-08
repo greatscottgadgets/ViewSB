@@ -11,8 +11,6 @@ import argparse
 
 from .. import ViewSBAnalyzer
 
-from ..packet import USBPacketID
-
 # Import all of our backends, frontends, and decoders.
 from ..backend import ViewSBBackend
 from ..frontend import ViewSBFrontend

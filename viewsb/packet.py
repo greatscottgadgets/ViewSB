@@ -13,7 +13,7 @@ from enum import Flag, auto
 from construct import BitStruct, BitsInteger, BitsSwapped, Bytewise, Byte, Int16ul
 
 from usb_protocol.types import USBDirection, USBRequestType, USBRequestRecipient, USBPacketID
-
+from usb_protocol.types.descriptor import DescriptorFormat, DescriptorField
 
 # XXX Temporary hack for __repr__.
 print_depth = 0
@@ -693,6 +693,31 @@ class USBSetupTransaction(USBTransaction):
         "request_length"    / Bytewise(Int16ul)
     )
 
+    NAME = 'setup'
+
+    BINARY_FORMAT = DescriptorFormat(
+        "bmRequestType" / DescriptorField("Request Type"),
+        "bRequest"      / DescriptorField("Request"),
+        "wValue"        / DescriptorField("Value"),
+        "wIndex"        / DescriptorField("Index"),
+        "wLength"       / DescriptorField("Length"),
+    )
+
+    REQUESTS = {
+        0: 'GET STATUS',
+        1: 'CLEAR FEATURE',
+        2: 'RESERVED',
+        3: 'SET FEATURE',
+        4: 'RESERVED',
+        5: 'SET ADDRESS',
+        6: 'GET DESCRIPTOR',
+        7: 'SET DESCRIPTOR',
+        8: 'GET CONFIGURATION',
+        9: 'SET CONFIGURATION',
+        10: 'GET INTERFACE',
+        11: 'SET INTERFACE',
+        12: 'SYNCH FRAME'
+    }
 
     def validate(self):
         self.parse_data()
@@ -736,9 +761,28 @@ class USBSetupTransaction(USBTransaction):
         return "control request setup transaction for {} request".format(self.request_direction.name)
 
 
-    def summarize_data(self, summary_length_bytes=8):
-        # NOTE: summary_length_bytes is ignored for a SETUP transaction.
-        return "value={:04x} index={:04x} length={:04x}".format(self.value, self.index, self.request_length)
+    def get_detail_fields(self):
+        # If we don't have a parsed version of this class, try to parse it.
+        if not hasattr(self, 'parsed'):
+            data = self.get_raw_data()
+            if not data:
+                return None
+
+            # Parse the SETUP data according to the binary format.
+            parsed_data = self.BINARY_FORMAT.parse(data)
+
+            # Translate the SETUP request name
+            if hasattr(parsed_data, 'bRequest'):
+                parsed_data.bRequest = self.REQUESTS.get(self.request_number, 'UNKNOWN')
+
+            # Store that descriptor any create empty lists of subordinates.
+            self.parsed = parsed_data._to_detail_dictionary()
+
+        # Create a list of descriptor tables.
+        table_list = [(self.NAME, self.parsed)]
+
+        # ... and return the list.
+        return table_list
 
 
 class USBSetupTransfer(USBSetupTransaction):

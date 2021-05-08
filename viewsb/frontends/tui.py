@@ -5,12 +5,9 @@ Quick experiment with a TUI frontend
 This file is part of ViewSB
 """
 
-import os
 import urwid
 import string
 import collections
-
-from urwid.widget import Widget
 
 from usb_protocol.types import USBDirection
 

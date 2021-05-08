@@ -88,6 +88,7 @@ class TUIFrontend(ViewSBFrontend):
     def __init__(self, ascii_only):
         """ Initializes the UI for the TUI widget. """
 
+        super().__init__()
         self.ascii_only = ascii_only
 
         # For now: create a really inefficient in-memory packet store,

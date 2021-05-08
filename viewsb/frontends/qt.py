@@ -450,6 +450,7 @@ class QtFrontend(ViewSBFrontend):
     def __init__(self):
         """ Sets up the Qt UI. """
 
+        super().__init__()
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)  # fix SIGINT handling - cleanly exit on ctrl+c

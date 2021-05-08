@@ -23,12 +23,13 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
     """ Generic parent class for sources that capture USB data. """
 
 
-    def __init__(self):
+    def __init__(self, *args):
         """
         Method that initializes the relevant backend. In most cases, this objects won't be instantiated
         directly -- but instead instantiated by the `run_asynchronously` / 'run_backend_asynchronously` helpers.
         """
 
+        super().__init__(*args)
         self.output_queue      = None
         self.termination_event = None
 
@@ -88,7 +89,7 @@ class FileBackend(ViewSBBackend):
 
     def __init__(self, target_file):
 
-        ViewSBBackend.__init__(self)
+        super().__init__()
 
         # Open the relevant file for reading if necessary.
         if isinstance(target_file, io.IOBase):

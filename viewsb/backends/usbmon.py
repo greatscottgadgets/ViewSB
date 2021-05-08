@@ -120,10 +120,10 @@ class USBMonBackend(ViewSBBackend):
     rather, instantiate one of its subclasses.
     """
 
-    def __init__(self):
+    def __init__(self, *args):
         """ Create our new backend object. """
 
-        ViewSBBackend.__init__(self)
+        super().__init__(*args)
 
         # Create an empty mapping that will store pending URBs; indexed by tag.
         self.pending_urbs = {}
@@ -398,8 +398,7 @@ class USBMonFileBackend(USBMonBackend, FileBackend):
     def __init__(self, filename):
 
         # Call both of our parent initializers with the appropriate arguments.
-        USBMonBackend.__init__(self)
-        FileBackend.__init__(self, filename)
+        super().__init__(filename)
 
 
     def read_data(self, length):

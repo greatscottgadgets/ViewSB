@@ -544,6 +544,16 @@ class QtFrontend(ViewSBFrontend):
 
         self.window.usb_hex_view.populate(current_packet.get_raw_data())
 
+    def _dict_to_items(self, fields):
+        children = []
+        for key, value in fields.items():
+            if isinstance(value, dict):
+                item = QTreeWidgetItem([key])
+                item.addChildren(self._dict_to_items(value))
+                children.append(item)
+            else:
+                children.append(QTreeWidgetItem(self._stringify_list([key, value])))
+        return children
 
     def update_detail_fields(self, detail_fields):
         """ Populates the detail view with the relevant fields for the selected packet. """
@@ -561,8 +571,7 @@ class QtFrontend(ViewSBFrontend):
 
             # The usual case: a str:str dict.
             if isinstance(fields, dict):
-                for key, value in fields.items():
-                    children.append(QTreeWidgetItem(self._stringify_list([key, value])))
+                children.extend(self._dict_to_items(fields))
 
             # Sometimes it'll just be a 1-column list.
             elif isinstance(fields, list):

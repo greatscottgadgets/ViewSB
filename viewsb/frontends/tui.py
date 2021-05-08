@@ -738,7 +738,7 @@ class VSBRootNode(VSBPacketNode):
             self.expanded = True
 
 
-        def rows(*args, **kwargs):
+        def rows(self, *args, **kwargs):
             # Return a widget that takes zero rows; and thus will be skipped during
             # listbox render.
             return 0

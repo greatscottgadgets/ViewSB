@@ -378,10 +378,10 @@ class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
             is_device = False
 
         # Search all of our subclasses.
-        for subclass in cls.__subclasses__():
-            matches = subclass.matches_class_specifics(usb_class, subclass, protocol, subtype, is_device)
+        for subcls in cls.__subclasses__():
+            matches = subcls.matches_class_specifics(usb_class, subclass, protocol, subtype, is_device)
             if matches:
-                return subclass
+                return subcls
 
         return None
 

@@ -403,3 +403,6 @@ class USBMonFileBackend(USBMonBackend, FileBackend):
 
     def read_data(self, length):
         return self.read(length)
+
+    def handle_packet(self, packet):
+        return USBMonBackend.handle_packet(self, packet)

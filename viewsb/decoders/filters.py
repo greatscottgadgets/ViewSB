@@ -42,3 +42,9 @@ class USBStartOfFrameFilter(USBPacketFilter, ViewSBDecoder):
 
     def should_filter_packet(self, packet):
         return (type(packet) is USBPacket) and (packet.pid is USBPacketID.SOF)
+
+    def can_handle_packet(self, packet):
+        return USBPacketFilter.can_handle_packet(self, packet)
+
+    def consume_packet(self, packet):
+        return USBPacketFilter.consume_packet(self, packet)

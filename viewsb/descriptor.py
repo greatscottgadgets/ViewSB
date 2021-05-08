@@ -103,7 +103,10 @@ class DescriptorTransfer(ViewSBPacket):
         # Say that five times fast.
 
         # FIXME: memoize this?
-        parsed_data = cls.BINARY_FORMAT.parse(data)
+        try:
+            parsed_data = cls.BINARY_FORMAT.parse(data)
+        except:
+            return None, 0
 
         # If we don't want to prepare the descriptor for display, return it directly.
         if not use_pretty_names:
@@ -163,7 +166,8 @@ class DescriptorTransfer(ViewSBPacket):
         incomplete = "incomplete " if (expected_length > bytes_parsed) else ""
 
         # Store that descriptor any create empty lists of subordinates.
-        self.parsed = table_or_string
+        if table_or_string:
+            self.parsed = table_or_string
         self.subordinates = []
 
         # While we are still getting descriptors, try to handle any left-over data.

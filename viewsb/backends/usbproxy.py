@@ -244,6 +244,7 @@ class USBProxyBackend(ViewSBBackend):
             additional_filters -- A list of any additional filters to be installed in the proxy stack.
         """
 
+        super().__init__()
         # Create the backend USBProxy instance that will perform our captures...
         facedancer_app = FacedancerUSBApp()
         self.proxy = USBProxyDevice(facedancer_app, idVendor=vendor_id, idProduct=product_id)

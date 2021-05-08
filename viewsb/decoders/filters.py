@@ -8,12 +8,9 @@ Includes functionality for e.g. breaking packets into transfers / transactions.
 This file is part of ViewSB
 """
 
-import bitstruct
-import collections
-
 from usb_protocol.types import USBPacketID
 
-from ..decoder import ViewSBDecoder, UnhandledPacket
+from ..decoder import ViewSBDecoder
 from ..packet import USBPacket
 
 

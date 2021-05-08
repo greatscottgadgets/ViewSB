@@ -15,10 +15,9 @@ from ..frontend import ViewSBFrontend
 
 
 try:
-    import PySide6
     from PySide6 import QtCore, QtWidgets
     from PySide6.QtWidgets import QApplication, QMainWindow
-    from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QTableView, QAbstractItemView, QHeaderView
+    from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QTableView, QAbstractItemView
     from PySide6.QtCore import Qt, QSize, QPoint, QItemSelection, QItemSelectionRange
     from PySide6.QtGui import QColor, QFont, QStandardItemModel, QStandardItem
     from PySide6.QtUiTools import QUiLoader
@@ -450,6 +449,7 @@ class QtFrontend(ViewSBFrontend):
     def __init__(self):
         """ Sets up the Qt UI. """
 
+        super().__init__()
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
 
         signal.signal(signal.SIGINT, signal.SIG_DFL)  # fix SIGINT handling - cleanly exit on ctrl+c
@@ -472,7 +472,7 @@ class QtFrontend(ViewSBFrontend):
         # Swap columns 0 and 5 to put the expand arrow on the summary column.
         self.window.usb_tree_widget.header().swapSections(0, 5)
 
-        self.window.usb_tree_widget.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.window.usb_tree_widget.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.window.update_timer = QtCore.QTimer()
         self.window.update_timer.timeout.connect(self._update)

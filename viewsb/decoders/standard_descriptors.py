@@ -6,8 +6,7 @@ Decoders that fill in descriptor data onto relevant transfers
 This file is part of ViewSB
 """
 
-import construct
-from construct import this
+from construct import this, Bytes
 
 import usb_protocol
 
@@ -18,7 +17,6 @@ from usb_protocol.types.descriptors.partial import EndpointDescriptor, DeviceQua
 from .standard_requests import GetDescriptorRequest
 
 from ..decoder import ViewSBDecoder, UnhandledPacket
-from ..device_model import DeviceModel
 
 
 class DescriptorRequestDecoder(ViewSBDecoder):
@@ -344,7 +342,7 @@ class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
             "bLength"             / DescriptorField("Length"),
             "bDescriptorType"     / DescriptorNumber(0x24),
             "bDescriptorSubtype"  / DescriptorField("Descriptor Subtype"),
-            "Data"                / construct.Bytes(this.bLength)
+            "Data"                / Bytes(this.bLength)
     )
 
 
@@ -378,10 +376,10 @@ class GetClassSpecificDescriptorRequest(GetDescriptorRequest):
             is_device = False
 
         # Search all of our subclasses.
-        for subclass in cls.__subclasses__():
-            matches = subclass.matches_class_specifics(usb_class, subclass, protocol, subtype, is_device)
+        for subcls in cls.__subclasses__():
+            matches = subcls.matches_class_specifics(usb_class, subclass, protocol, subtype, is_device)
             if matches:
-                return subclass
+                return subcls
 
         return None
 

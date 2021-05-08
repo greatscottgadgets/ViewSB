@@ -6,6 +6,7 @@ This file is part of ViewSB
 """
 
 from usb_protocol.types.descriptor import DescriptorFormat, DescriptorField
+from construct.core import ConstError, ConstructError
 
 from .packet import ViewSBPacket
 
@@ -123,8 +124,15 @@ class DescriptorTransfer(ViewSBPacket):
         if data is None:
             data = self.get_raw_data()
 
-        return self.decode_data_as_descriptor(data, use_pretty_names)
-
+        try:
+            return self.decode_data_as_descriptor(data, use_pretty_names)
+        except ConstError as error:
+            errorParts = str(error).split('\n')
+            what = error.path.split('->')[1].strip() if error.path else "error"
+            self.parsed = {what: errorParts[1]}
+        except ConstructError:
+            pass
+        return None, 0
 
     def handle_data_remaining_after_decode(self, data, subordinate_number):
         """ Called if data is remaining after our decode. If data remains after this call, this
@@ -163,7 +171,8 @@ class DescriptorTransfer(ViewSBPacket):
         incomplete = "incomplete " if (expected_length > bytes_parsed) else ""
 
         # Store that descriptor any create empty lists of subordinates.
-        self.parsed = table_or_string
+        if table_or_string:
+            self.parsed = table_or_string
         self.subordinates = []
 
         # While we are still getting descriptors, try to handle any left-over data.

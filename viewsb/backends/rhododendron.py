@@ -7,10 +7,8 @@ This file is part of ViewSB.
 # pylint: disable=maybe-no-member,access-member-before-definition
 
 import os
-import sys
 import array
 import errno
-import argparse
 from datetime import datetime
 
 import crcmod

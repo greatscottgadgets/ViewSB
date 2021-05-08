@@ -6,6 +6,7 @@ This file is part of ViewSB
 """
 
 from usb_protocol.types.descriptor import DescriptorFormat, DescriptorField
+from construct.core import ConstError
 
 from .packet import ViewSBPacket
 
@@ -103,10 +104,7 @@ class DescriptorTransfer(ViewSBPacket):
         # Say that five times fast.
 
         # FIXME: memoize this?
-        try:
-            parsed_data = cls.BINARY_FORMAT.parse(data)
-        except:
-            return None, 0
+        parsed_data = cls.BINARY_FORMAT.parse(data)
 
         # If we don't want to prepare the descriptor for display, return it directly.
         if not use_pretty_names:
@@ -126,8 +124,15 @@ class DescriptorTransfer(ViewSBPacket):
         if data is None:
             data = self.get_raw_data()
 
-        return self.decode_data_as_descriptor(data, use_pretty_names)
-
+        try:
+            return self.decode_data_as_descriptor(data, use_pretty_names)
+        except ConstError as error:
+            errorParts = str(error).split('\n')
+            what = error.path.split('->')[1].strip() if error.path else "error"
+            self.parsed = {what: errorParts[1]}
+        except:
+            pass
+        return None, 0
 
     def handle_data_remaining_after_decode(self, data, subordinate_number):
         """ Called if data is remaining after our decode. If data remains after this call, this

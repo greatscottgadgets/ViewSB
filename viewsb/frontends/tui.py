@@ -260,16 +260,20 @@ class TUIFrontend(ViewSBFrontend):
         return string
 
 
-    def add_key_value_table_to_decoder_view(self, table):
+    def add_key_value_table_to_decoder_view(self, table, padding=1):
         """ Adds a decoder-result table to the decoder panel on the right. """
 
         # Add each key/value pair to our table.
         for key, value in table.items():
-            columns = urwid.Columns([
-                self.format_string_for_view(str(key), style='key_column'),
-                self.format_string_for_view(str(value))
-            ])
-            self.decoder_rows.append(columns)
+            if isinstance(value, dict):
+                self.decoder_rows.append(self.format_string_for_view(str(key), style='key_column'))
+                self.add_key_value_table_to_decoder_view(value, padding=padding + 2)
+            else:
+                columns = urwid.Columns([
+                    self.format_string_for_view(str(key), style='key_column', padding=padding),
+                    self.format_string_for_view(str(value))
+                ])
+                self.decoder_rows.append(columns)
 
 
     def handle_communications(self):

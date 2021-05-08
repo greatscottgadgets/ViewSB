@@ -704,19 +704,19 @@ class USBSetupTransaction(USBTransaction):
     )
 
     REQUESTS = {
-        0: 'GET STATUS',
-        1: 'CLEAR FEATURE',
-        2: 'RESERVED',
-        3: 'SET FEATURE',
-        4: 'RESERVED',
-        5: 'SET ADDRESS',
-        6: 'GET DESCRIPTOR',
-        7: 'SET DESCRIPTOR',
-        8: 'GET CONFIGURATION',
-        9: 'SET CONFIGURATION',
-        10: 'GET INTERFACE',
-        11: 'SET INTERFACE',
-        12: 'SYNCH FRAME'
+        0: 'get status',
+        1: 'clear feature',
+        2: 'reserved',
+        3: 'set feature',
+        4: 'reserved',
+        5: 'set address',
+        6: 'get descriptor',
+        7: 'set descriptor',
+        8: 'get configuration',
+        9: 'set configuration',
+        10: 'get interface',
+        11: 'set interface',
+        12: 'synch frame'
     }
 
     def validate(self):
@@ -760,6 +760,108 @@ class USBSetupTransaction(USBTransaction):
     def summarize(self):
         return "control request setup transaction for {} request".format(self.request_direction.name)
 
+    @staticmethod
+    def _decode_descriptor_type(descType):
+        if descType == 0:
+            return 'invalid'
+        elif descType == 1:
+            return 'device'
+        elif descType == 2:
+            return 'configuration'
+        elif descType == 3:
+            return 'string'
+        elif descType == 4:
+            return 'interface'
+        elif descType == 5:
+            return 'endpoint'
+        elif descType == 6:
+            return 'device qualifier'
+        elif descType == 7:
+            return 'other speed'
+        elif descType == 8:
+            return 'interface power'
+        elif descType == 9:
+            return 'otg'
+        elif descType == 10:
+            return 'debug'
+        elif descType == 11:
+            return 'interface association'
+        elif descType == 12:
+            return 'security'
+        elif descType == 13:
+            return 'key'
+        elif descType == 14:
+            return 'encryption type'
+
+        elif descType == 16:
+            return 'device capability'
+        elif descType == 17:
+            return 'wireless endpoint'
+
+        elif descType == 33:
+            return 'hid'
+        elif descType == 34:
+            return 'hid report'
+        elif descType == 35:
+            return 'physical description'
+        return 'unknown'
+
+    @staticmethod
+    def _decode_descriptor_lang(lang):
+        if lang == 0x0904:
+            return 'english'
+        return f'unknown {lang:#06x}'
+
+    @classmethod
+    def _decode_descriptor_request(cls, data):
+        index = data.wValue & 0xFF
+        descType = data.wValue >> 8
+        data.wValue = {
+            'Index': index,
+            'Type': cls._decode_descriptor_type(descType),
+        }
+        if data.wIndex != 0:
+            data.wIndex = {
+                'Language': cls._decode_descriptor_lang(data.wIndex),
+            }
+
+    @staticmethod
+    def _decode_request_type(reqType):
+        if reqType == 0:
+            return 'standard'
+        elif reqType == 1:
+            return 'class'
+        elif reqType == 2:
+            return 'vendor'
+        return 'reserved'
+
+    @staticmethod
+    def _decode_request_recipient(recipient):
+        if recipient == 0:
+            return 'device'
+        elif recipient == 1:
+            return 'interface'
+        elif recipient == 2:
+            return 'endpoint'
+        elif recipient == 3:
+            return 'other'
+        return 'reserved'
+
+    @classmethod
+    def _decode_request(cls, data):
+        if data.bRequest == 6:
+            cls._decode_descriptor_request(data)
+
+        reqDir = (data.bmRequestType >> 7)
+        reqType = (data.bmRequestType >> 5) & 0x3
+        reqRecipient = data.bmRequestType & 0x1F
+        data.bmRequestType = {
+            'Direction': 'device-to-host' if reqDir == 1 else 'host-to-device',
+            'Type': cls._decode_request_type(reqType),
+            'Recipient': cls._decode_request_recipient(reqRecipient),
+        }
+
+        data.bRequest = cls.REQUESTS.get(data.bRequest, 'UNKNOWN')
 
     def get_detail_fields(self):
         # If we don't have a parsed version of this class, try to parse it.
@@ -768,12 +870,14 @@ class USBSetupTransaction(USBTransaction):
             if not data:
                 return None
 
+            if len(data) != 8:
+                return [(self.NAME, "Invalid SETUP packet length")]
+
             # Parse the SETUP data according to the binary format.
             parsed_data = self.BINARY_FORMAT.parse(data)
 
-            # Translate the SETUP request name
-            if hasattr(parsed_data, 'bRequest'):
-                parsed_data.bRequest = self.REQUESTS.get(self.request_number, 'UNKNOWN')
+            # Translate the SETUP request
+            self._decode_request(parsed_data)
 
             # Store that descriptor any create empty lists of subordinates.
             self.parsed = parsed_data._to_detail_dictionary()

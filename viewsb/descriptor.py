@@ -130,7 +130,7 @@ class DescriptorTransfer(ViewSBPacket):
             errorParts = str(error).split('\n')
             what = error.path.split('->')[1].strip() if error.path else "error"
             self.parsed = {what: errorParts[1]}
-        except:
+        except Exception:
             pass
         return None, 0
 

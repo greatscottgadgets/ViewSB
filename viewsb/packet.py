@@ -780,7 +780,7 @@ class USBControlTransfer(USBTransfer):
 
         # Set the transfer to stalled if the handshake token is stalled.
         fields['stalled'] = \
-            (status_transfer and status_transfer.pid == USBPacketID.STALL) or \
+            (status_transfer and status_transfer.handshake == USBPacketID.STALL) or \
             (data_transfer and data_transfer.handshake == USBPacketID.STALL)
 
         # Set our subordinate packets to the three packets we're consuming.

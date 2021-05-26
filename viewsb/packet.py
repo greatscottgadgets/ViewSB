@@ -804,7 +804,7 @@ class USBSetupTransaction(USBTransaction):
             return 'hid report'
         elif descType == 35:
             return 'physical description'
-        return 'unknown'
+        return f'unknown ({descType:#x})'
 
     @staticmethod
     def _decode_descriptor_lang(lang):
@@ -861,7 +861,7 @@ class USBSetupTransaction(USBTransaction):
             'Recipient': cls._decode_request_recipient(reqRecipient),
         }
 
-        data.bRequest = cls.REQUESTS.get(data.bRequest, 'UNKNOWN')
+        data.bRequest = cls.REQUESTS.get(data.bRequest, f'UNKNOWN ({data.bRequest:#x})')
 
     def get_detail_fields(self):
         # If we don't have a parsed version of this class, try to parse it.

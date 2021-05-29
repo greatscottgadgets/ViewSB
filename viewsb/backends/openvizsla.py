@@ -7,6 +7,8 @@ This file is part of ViewSB
 
 # pylint: disable=maybe-no-member,access-member-before-definition
 
+from datetime import timedelta
+
 from ..backend import ViewSBBackend
 from ..packet import USBPacket
 
@@ -58,7 +60,10 @@ try:
                 return
 
             # TODO: convert flags to status?
-            packet = USBPacket.from_raw_packet(raw_packet, timestamp=timestamp)
+            packet = USBPacket.from_raw_packet(
+                raw_packet,
+                timestamp=timedelta(microseconds=timestamp),
+            )
 
             # Assume the packet isn't one we're suppressing, emit it to our stack.
             if not self._should_be_suppressed(packet):

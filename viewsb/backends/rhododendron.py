@@ -9,7 +9,8 @@ This file is part of ViewSB.
 import os
 import array
 import errno
-from datetime import datetime
+
+from datetime import datetime, timedelta
 
 import crcmod
 
@@ -178,7 +179,10 @@ class USBHackDelineator:
 
         # Convert the data to a USBPacket.
         timestamp = self.backend.get_microseconds()
-        packet = USBPacket.from_raw_packet(bytearray(data), timestamp=timestamp)
+        packet = USBPacket.from_raw_packet(
+            bytearray(data),
+            timestamp=timedelta(microseconds=timestamp)
+        )
 
         # Submit the delineated packet to our backend.
         self.backend.emit_packet(packet)

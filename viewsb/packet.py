@@ -716,7 +716,28 @@ class USBSetupTransaction(USBTransaction):
         9: 'set configuration',
         10: 'get interface',
         11: 'set interface',
-        12: 'synch frame'
+        12: 'synch frame',
+    }
+
+    DESCRIPTOR_TYPES = {
+        0: 'invalid',
+        1: 'device',
+        2: 'configuration',
+        3: 'string',
+        4: 'interface',
+        5: 'endpoint',
+        6: 'device qualifier',
+        7: 'other speed',
+        8: 'interface power',
+        9: 'otg',
+        10: 'debug',
+        11: 'interface association',
+        12: 'security',
+        13: 'key',
+        14: 'encryption type',
+
+        16: 'device capability',
+        17: 'wireless endpoint',
     }
 
     def validate(self):
@@ -760,47 +781,11 @@ class USBSetupTransaction(USBTransaction):
     def summarize(self):
         return "control request setup transaction for {} request".format(self.request_direction.name)
 
-    @staticmethod
-    def _decode_descriptor_type(desc_type):
-        if desc_type == 0:
-            return 'invalid'
-        elif desc_type == 1:
-            return 'device'
-        elif desc_type == 2:
-            return 'configuration'
-        elif desc_type == 3:
-            return 'string'
-        elif desc_type == 4:
-            return 'interface'
-        elif desc_type == 5:
-            return 'endpoint'
-        elif desc_type == 6:
-            return 'device qualifier'
-        elif desc_type == 7:
-            return 'other speed'
-        elif desc_type == 8:
-            return 'interface power'
-        elif desc_type == 9:
-            return 'otg'
-        elif desc_type == 10:
-            return 'debug'
-        elif desc_type == 11:
-            return 'interface association'
-        elif desc_type == 12:
-            return 'security'
-        elif desc_type == 13:
-            return 'key'
-        elif desc_type == 14:
-            return 'encryption type'
-
-        elif desc_type == 16:
-            return 'device capability'
-        elif desc_type == 17:
-            return 'wireless endpoint'
-
-        elif desc_type >= 32:
+    @classmethod
+    def _decode_descriptor_type(cls, desc_type):
+        if desc_type >= 32:
             return f'class specific ({desc_type:#x})'
-        return f'unknown ({desc_type:#x})'
+        return cls.DESCRIPTOR_TYPES.get(desc_type, f'unknown ({desc_type:#x})')
 
     @staticmethod
     def _decode_descriptor_lang(lang):

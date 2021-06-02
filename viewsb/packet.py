@@ -746,6 +746,13 @@ class USBSetupTransaction(USBTransaction):
         2: 'vendor',
     }
 
+    RECIPIENTS = {
+        0: 'device',
+        1: 'interface',
+        2: 'endpoint',
+        3: 'other',
+    }
+
     def validate(self):
         self.parse_data()
         self.parse_field_as_direction('request_direction')
@@ -812,18 +819,6 @@ class USBSetupTransaction(USBTransaction):
                 'Language': cls._decode_descriptor_lang(data.wIndex),
             }
 
-    @staticmethod
-    def _decode_request_recipient(recipient):
-        if recipient == 0:
-            return 'device'
-        elif recipient == 1:
-            return 'interface'
-        elif recipient == 2:
-            return 'endpoint'
-        elif recipient == 3:
-            return 'other'
-        return 'reserved'
-
     @classmethod
     def _decode_request(cls, data):
         if data.bRequest == 6:
@@ -834,8 +829,8 @@ class USBSetupTransaction(USBTransaction):
         req_recipient = data.bmRequestType & 0x1F
         data.bmRequestType = {
             'Direction': 'device-to-host' if req_dir == 1 else 'host-to-device',
-            'Type': cls.REQUEST_TYPES.get(req_type, 'reserved'),
-            'Recipient': cls._decode_request_recipient(req_recipient),
+            'Type': cls.REQUEST_TYPES.get(req_type, f'reserved ({req_type:#x})'),
+            'Recipient': cls.RECIPIENTS.get(req_recipient, f'reserved ({req_recipient:#x})'),
         }
 
         data.bRequest = cls.REQUESTS.get(data.bRequest, f'UNKNOWN ({data.bRequest:#x})')

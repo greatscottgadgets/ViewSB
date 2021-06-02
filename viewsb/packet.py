@@ -740,6 +740,12 @@ class USBSetupTransaction(USBTransaction):
         17: 'wireless endpoint',
     }
 
+    REQUEST_TYPES = {
+        0: 'standard',
+        1: 'class',
+        2: 'vendor',
+    }
+
     def validate(self):
         self.parse_data()
         self.parse_field_as_direction('request_direction')
@@ -807,16 +813,6 @@ class USBSetupTransaction(USBTransaction):
             }
 
     @staticmethod
-    def _decode_request_type(reqType):
-        if reqType == 0:
-            return 'standard'
-        elif reqType == 1:
-            return 'class'
-        elif reqType == 2:
-            return 'vendor'
-        return 'reserved'
-
-    @staticmethod
     def _decode_request_recipient(recipient):
         if recipient == 0:
             return 'device'
@@ -838,7 +834,7 @@ class USBSetupTransaction(USBTransaction):
         req_recipient = data.bmRequestType & 0x1F
         data.bmRequestType = {
             'Direction': 'device-to-host' if req_dir == 1 else 'host-to-device',
-            'Type': cls._decode_request_type(req_type),
+            'Type': cls.REQUEST_TYPES.get(req_type, 'reserved'),
             'Recipient': cls._decode_request_recipient(req_recipient),
         }
 

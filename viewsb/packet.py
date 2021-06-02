@@ -848,13 +848,13 @@ class USBSetupTransaction(USBTransaction):
         if data.bRequest == 6:
             cls._decode_descriptor_request(data)
 
-        reqDir = (data.bmRequestType >> 7)
-        reqType = (data.bmRequestType >> 5) & 0x3
-        reqRecipient = data.bmRequestType & 0x1F
+        req_dir = (data.bmRequestType >> 7)
+        req_type = (data.bmRequestType >> 5) & 0x3
+        req_recipient = data.bmRequestType & 0x1F
         data.bmRequestType = {
-            'Direction': 'device-to-host' if reqDir == 1 else 'host-to-device',
-            'Type': cls._decode_request_type(reqType),
-            'Recipient': cls._decode_request_recipient(reqRecipient),
+            'Direction': 'device-to-host' if req_dir == 1 else 'host-to-device',
+            'Type': cls._decode_request_type(req_type),
+            'Recipient': cls._decode_request_recipient(req_recipient),
         }
 
         data.bRequest = cls.REQUESTS.get(data.bRequest, f'UNKNOWN ({data.bRequest:#x})')

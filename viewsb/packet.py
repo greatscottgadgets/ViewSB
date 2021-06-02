@@ -761,50 +761,46 @@ class USBSetupTransaction(USBTransaction):
         return "control request setup transaction for {} request".format(self.request_direction.name)
 
     @staticmethod
-    def _decode_descriptor_type(descType):
-        if descType == 0:
+    def _decode_descriptor_type(desc_type):
+        if desc_type == 0:
             return 'invalid'
-        elif descType == 1:
+        elif desc_type == 1:
             return 'device'
-        elif descType == 2:
+        elif desc_type == 2:
             return 'configuration'
-        elif descType == 3:
+        elif desc_type == 3:
             return 'string'
-        elif descType == 4:
+        elif desc_type == 4:
             return 'interface'
-        elif descType == 5:
+        elif desc_type == 5:
             return 'endpoint'
-        elif descType == 6:
+        elif desc_type == 6:
             return 'device qualifier'
-        elif descType == 7:
+        elif desc_type == 7:
             return 'other speed'
-        elif descType == 8:
+        elif desc_type == 8:
             return 'interface power'
-        elif descType == 9:
+        elif desc_type == 9:
             return 'otg'
-        elif descType == 10:
+        elif desc_type == 10:
             return 'debug'
-        elif descType == 11:
+        elif desc_type == 11:
             return 'interface association'
-        elif descType == 12:
+        elif desc_type == 12:
             return 'security'
-        elif descType == 13:
+        elif desc_type == 13:
             return 'key'
-        elif descType == 14:
+        elif desc_type == 14:
             return 'encryption type'
 
-        elif descType == 16:
+        elif desc_type == 16:
             return 'device capability'
-        elif descType == 17:
+        elif desc_type == 17:
             return 'wireless endpoint'
 
-        elif descType == 33:
-            return 'hid'
-        elif descType == 34:
-            return 'hid report'
-        elif descType == 35:
-            return 'physical description'
-        return f'unknown ({descType:#x})'
+        elif desc_type >= 32:
+            return f'class specific ({desc_type:#x})'
+        return f'unknown ({desc_type:#x})'
 
     @staticmethod
     def _decode_descriptor_lang(lang):

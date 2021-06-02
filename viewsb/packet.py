@@ -828,7 +828,7 @@ class USBSetupTransaction(USBTransaction):
         req_type = (data.bmRequestType >> 5) & 0x3
         req_recipient = data.bmRequestType & 0x1F
         data.bmRequestType = {
-            'Direction': 'device-to-host' if req_dir == 1 else 'host-to-device',
+            'Direction': 'device-to-host (1)' if req_dir == 1 else 'host-to-device (0)',
             'Type': cls.REQUEST_TYPES.get(req_type, f'reserved ({req_type:#x})'),
             'Recipient': cls.RECIPIENTS.get(req_recipient, f'reserved ({req_recipient:#x})'),
         }

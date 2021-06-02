@@ -720,37 +720,37 @@ class USBSetupTransaction(USBTransaction):
     }
 
     DESCRIPTOR_TYPES = {
-        0: 'invalid',
-        1: 'device',
-        2: 'configuration',
-        3: 'string',
-        4: 'interface',
-        5: 'endpoint',
-        6: 'device qualifier',
-        7: 'other speed',
-        8: 'interface power',
-        9: 'otg',
-        10: 'debug',
-        11: 'interface association',
-        12: 'security',
-        13: 'key',
-        14: 'encryption type',
+        0: 'invalid (0x00)',
+        1: 'device (0x01)',
+        2: 'configuration (0x02)',
+        3: 'string (0x03)',
+        4: 'interface (0x04)',
+        5: 'endpoint (0x05)',
+        6: 'device qualifier (0x06)',
+        7: 'other speed (0x07)',
+        8: 'interface power (0x08)',
+        9: 'otg (0x09)',
+        10: 'debug (0x0A)',
+        11: 'interface association (0x0B)',
+        12: 'security (0x0C)',
+        13: 'key (0x0B)',
+        14: 'encryption type (0x0E)',
 
-        16: 'device capability',
-        17: 'wireless endpoint',
+        16: 'device capability (0x10)',
+        17: 'wireless endpoint (0x11)',
     }
 
     REQUEST_TYPES = {
-        0: 'standard',
-        1: 'class',
-        2: 'vendor',
+        0: 'standard (0x00)',
+        1: 'class (0x01)',
+        2: 'vendor (0x02)',
     }
 
     RECIPIENTS = {
-        0: 'device',
-        1: 'interface',
-        2: 'endpoint',
-        3: 'other',
+        0: 'device (0x00)',
+        1: 'interface (0x01)',
+        2: 'endpoint (0x02)',
+        3: 'other (0x03)',
     }
 
     def validate(self):

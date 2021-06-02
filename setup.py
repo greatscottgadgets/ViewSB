@@ -35,6 +35,7 @@ setup(
         'usb_protocol',
     ],
     extras_require={
+        'qt': ['pyside6', 'qt-material'],
         'luna': ['luna'],
         'openvizla': ['pyopenvizsla'],
         'phywhisperer': ['phywhisperer'],

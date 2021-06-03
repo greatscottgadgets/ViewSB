@@ -6,7 +6,7 @@ This file is part of ViewSB
 """
 
 from usb_protocol.types.descriptor import DescriptorFormat, DescriptorField
-from construct.core import ConstError
+from construct.core import ConstError, ConstructError
 
 from .packet import ViewSBPacket
 
@@ -130,7 +130,7 @@ class DescriptorTransfer(ViewSBPacket):
             errorParts = str(error).split('\n')
             what = error.path.split('->')[1].strip() if error.path else "error"
             self.parsed = {what: errorParts[1]}
-        except Exception:
+        except ConstructError:
             pass
         return None, 0
 

@@ -5,6 +5,7 @@ ViewSB frontend class definitions -- defines the abstract base for things that d
 This file is part of ViewSB
 """
 
+import sys
 import queue
 
 from .ipc import ProcessManager
@@ -146,26 +147,32 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
         directly -- but instead instantiated by the `run_asynchronously` / 'run_frontend_asynchronously` helpers.
         """
 
-        self.data_queue        = None
-        self.termination_event = None
-        self._exception_conn   = None
-        self.stdin             = None
+        self.data_queue          = None
+        self.backend_setup_queue = None
+        self.backend_ready       = None
+        self.termination_event   = None
+        self._exception_conn     = None
+        self.stdin               = None
 
 
-    def set_up_ipc(self, data_queue, termination_event, exception_conn):
+    def set_up_ipc(self, data_queue, backend_setup_queue, backend_ready, termination_event, exception_conn):
         """
         Function that accepts the synchronization objects we'll use for input. Must be called prior to
         calling run().
 
         Args:
             data_queue -- The Queue object that will feed up analyzed packets for display.
+            backend_setup_queue -- The Queue object that will feed the backend setup message log.
+            backend_ready -- A synchronization event that is set when the backend is ready to emit packets.
             termination_event -- A synchronization event that is set when a capture is terminated.
         """
 
         # Store our IPC primitives, ready for future use.
-        self.data_queue        = data_queue
-        self.termination_event = termination_event
-        self._exception_conn   = exception_conn
+        self.data_queue          = data_queue
+        self.backend_setup_queue = backend_setup_queue
+        self.backend_ready       = backend_ready
+        self.termination_event   = termination_event
+        self._exception_conn     = exception_conn
 
         # Re-open stdin. Note that we don't try to pass stdin between the processes,
         # as the object isn't picklable, and we spawned a new process instead of forking.
@@ -227,8 +234,24 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
             self.handle_incoming_packet(packet)
 
 
+    def wait_for_backend_ready(self):
+        ''' Wait for backend to be ready and update message log. '''
+        while not self.backend_ready.is_set():
+            try:
+                # add a little timeout when fetching from the queue instead of nonblock to prevent pinning the CPU usage
+                setup_message = self.backend_setup_queue.get(timeout=0.01)
+                self.handle_setup_message(setup_message)
+            except queue.Empty:
+                pass
+            if self._exception_conn.poll():
+                self.handle_exception(*self._exception_conn.recv())
+        self.ready()
+
+
     def run(self):
         """ Runs the given frontend until either side requests termination. """
+
+        self.wait_for_backend_ready()
 
         # Capture infinitely until our termination signal is set.
         while not self.termination_event.is_set():
@@ -242,8 +265,18 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
         self.handle_termination()
 
 
+    def ready(self):
+        """ Called when the backend is ready to stream. """
+
+
+    def handle_setup_message(self, setup_message):
+        """ Called when we get a setup message from the backend. """
+        print(setup_message)
+
+
     def handle_exception(self, exception, traceback):
         print(traceback, end='')
+        sys.exit()
 
 
     def handle_termination(self):

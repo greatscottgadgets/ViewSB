@@ -482,6 +482,9 @@ class QtFrontend(ViewSBFrontend):
         self.window.usb_tree_widget = self.window.usb_tree_widget
         self.window.usb_tree_widget.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
+
+    def ready(self):
+        """ Called when the backend is ready to stream. """
         self.window.showMaximized()
 
 
@@ -603,6 +606,8 @@ class QtFrontend(ViewSBFrontend):
 
     def run(self):
         """ Overrides ViewSBFrontend.run(). """
+
+        self.wait_for_backend_ready()
 
         # TODO: is there a better value than 100 ms? Should it be configurable by the Analyzer?
         self.window.update_timer.start(100)

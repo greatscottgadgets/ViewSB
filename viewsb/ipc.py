@@ -30,18 +30,30 @@ class ProcessManager:
     Subclasses are used by the analyzer thread to spawn Frontend and Backend processes.
     """
 
-    def __init__(self, remote_class, in_except_conn, out_except_conn, **remote_arguments):
+    def __init__(
+        self,
+        remote_class,
+        backend_setup_queue,
+        backend_ready,
+        in_except_conn,
+        out_except_conn,
+        **remote_arguments,
+    ):
 
         # Create our output queue and our termination-signaling event.
-        self.data_queue        = multiprocessing.Queue()
-        self.termination_event = multiprocessing.Event()
-        self._in_except_conn   = in_except_conn
+        self.data_queue          = multiprocessing.Queue()
+        self.backend_setup_queue = backend_setup_queue
+        self.backend_ready       = backend_ready
+        self.termination_event   = multiprocessing.Event()
+        self._in_except_conn     = in_except_conn
 
         # And put together our arguments.
         self.remote_arguments = [
             remote_class,
             remote_arguments,
             self.data_queue,
+            self.backend_setup_queue,
+            self.backend_ready,
             self.termination_event,
             out_except_conn,
         ]
@@ -100,7 +112,15 @@ class ProcessManager:
 
 
     @staticmethod
-    def _subordinate_process_entry(remote_class, arguments, data_queue, termination_event, exception_conn):
+    def _subordinate_process_entry(
+        remote_class,
+        arguments,
+        data_queue,
+        backend_setup_queue,
+        backend_ready,
+        termination_event,
+        exception_conn,
+    ):
         """
         Helper function for running a remote with a UI 'thread'. This method should usually be called in a subordinate
         process managed by multiprocessing. You probably want the public API of ViewSBFrontendProcess/ViewSBBackendProcess.
@@ -110,7 +130,7 @@ class ProcessManager:
         task = remote_class(**arguments)
 
         # Pass the new 'task' our IPC mechanisms, and then standard input.
-        task.set_up_ipc(data_queue, termination_event, exception_conn)
+        task.set_up_ipc(data_queue, backend_setup_queue, backend_ready, termination_event, exception_conn)
 
         # Finally, run our 'task' until it terminates.
         try:

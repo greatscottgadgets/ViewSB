@@ -5,6 +5,7 @@ ViewSB frontend class definitions -- defines the abstract base for things that d
 This file is part of ViewSB
 """
 
+import sys
 import queue
 
 from .ipc import ProcessManager
@@ -275,6 +276,7 @@ class ViewSBFrontend(ViewSBEnumerableFromUI):
 
     def handle_exception(self, exception, traceback):
         print(traceback, end='')
+        sys.exit()
 
 
     def handle_termination(self):

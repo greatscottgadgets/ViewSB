@@ -489,7 +489,8 @@ class USBStatusTransfer(USBHandshakePacket):
     one level up the abstraction ladder. Re-use that code.
     """
 
-    pass
+    # `handshake` and `pid` should be the same for a status transfer.
+    FIELDS = { 'handshake' }
 
 
 class MalformedPacket(USBPacket):

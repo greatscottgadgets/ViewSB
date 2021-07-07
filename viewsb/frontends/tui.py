@@ -5,12 +5,9 @@ Quick experiment with a TUI frontend
 This file is part of ViewSB
 """
 
-import os
 import urwid
 import string
 import collections
-
-from urwid.widget import Widget
 
 from usb_protocol.types import USBDirection
 
@@ -88,6 +85,7 @@ class TUIFrontend(ViewSBFrontend):
     def __init__(self, ascii_only):
         """ Initializes the UI for the TUI widget. """
 
+        super().__init__()
         self.ascii_only = ascii_only
 
         # For now: create a really inefficient in-memory packet store,
@@ -740,7 +738,7 @@ class VSBRootNode(VSBPacketNode):
             self.expanded = True
 
 
-        def rows(*args, **kwargs):
+        def rows(self, *args, **kwargs):
             # Return a widget that takes zero rows; and thus will be skipped during
             # listbox render.
             return 0

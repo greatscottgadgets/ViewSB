@@ -6,7 +6,6 @@ This file is part of ViewSB
 """
 
 import io
-import argparse
 import sys
 
 from .ipc import ProcessManager

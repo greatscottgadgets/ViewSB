@@ -11,6 +11,8 @@ This file is part of ViewSB
 import sys
 import errno
 
+from datetime import timedelta
+
 from ..backend import ViewSBBackend
 from ..packet import USBPacket
 
@@ -43,7 +45,10 @@ try:
             if not len(raw_packet):
                 return
 
-            packet = USBPacket.from_raw_packet(raw_packet, timestamp=timestamp)
+            packet = USBPacket.from_raw_packet(
+                raw_packet,
+                timestamp=timedelta(microseconds=timestamp),
+            )
             self._emit_packet(packet)
 
 

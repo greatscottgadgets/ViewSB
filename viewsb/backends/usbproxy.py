@@ -7,7 +7,7 @@ This file is part of ViewSB
 
 # pylint: disable=maybe-no-member,access-member-before-definition
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from usb_protocol.types import USBPacketID, USBDirection
 
@@ -98,7 +98,11 @@ try:
             address = self.backend.proxy.libusb_device.address
 
             # Build three synthetic transactions that compose our control request...
-            setup = USBSetupTransaction.from_setup_data(req.raw(), device_address=address, timestamp=timestamp)
+            setup = USBSetupTransaction.from_setup_data(
+                req.raw(),
+                device_address=address,
+                timestamp=timedelta(microseconds=timestamp),
+            )
             last_direction = USBDirection.OUT
 
             # If we have a data stage, generate a packet for it.

@@ -5,6 +5,8 @@
 
 # pylint: disable=maybe-no-member,access-member-before-definition
 
+from datetime import datetime
+
 from ..backend import ViewSBBackend
 from ..packet import USBPacket
 
@@ -78,6 +80,9 @@ class LUNABackend(ViewSBBackend):
         self.setup_queue.put('Configuring the hardware...')
         self.analyzer.build_and_configure(self.capture_speed)
 
+        # start capture
+        self._start_timestamp = datetime.now()
+
 
     def run_capture(self):
 
@@ -85,5 +90,8 @@ class LUNABackend(ViewSBBackend):
         raw_packet, timestamp, _ = self.analyzer.read_raw_packet()
 
         # TODO: handle flags
-        packet = USBPacket.from_raw_packet(raw_packet, timestamp=timestamp)
+        packet = USBPacket.from_raw_packet(
+            raw_packet,
+            timestamp=timestamp - self._start_timestamp,
+        )
         self.emit_packet(packet)

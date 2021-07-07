@@ -8,6 +8,7 @@ This file is part of ViewSB
 import errno
 import struct
 
+from datetime import timedelta
 from enum import Enum
 
 import usb_protocol
@@ -236,7 +237,7 @@ class USBMonBackend(ViewSBBackend):
         """ Returns the timestamp for a given URB event. """
 
         # FIXME: is this right?
-        return event.timestamp_microseconds
+        return timedelta(microseconds=event.timestamp_microseconds)
 
 
     def _generate_data_transfer_for_event(self, event, stall=None):

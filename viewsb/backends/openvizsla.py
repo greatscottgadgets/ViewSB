@@ -125,10 +125,17 @@ class OpenVizslaBackend(ViewSBBackend):
         self.ov_device.register_sink(self.packet_sink)
 
 
+    def setup(self):
+
+        self.setup_queue.put("Configuring the hardware...")
+        self.ov_device.open(reconfigure_fpga=True)
+
+
     def run(self):
         """ Run an OpenVizsla capture. """
 
-        self.ov_device.open(reconfigure_fpga=True)
+        self.setup()
+        self.ready.set()
 
         try:
             halt_callback = lambda _ : self.termination_event.is_set()

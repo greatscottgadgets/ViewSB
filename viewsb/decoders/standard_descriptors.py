@@ -78,7 +78,7 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
         return "{}:{}:{}".format(decoded.bDeviceClass, decoded.bDeviceSubclass, decoded.bDeviceProtocol)
 
 
-    def summarize_data(self):
+    def summarize_data(self, summary_length_bytes=16):
 
         # FIXME: store the parsed data via validate(), don't read this multiple times
         decoded, length = self.get_decoded_descriptor(use_pretty_names=False)
@@ -90,7 +90,7 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
                 decoded.idProduct,
                 class_text)
         except (KeyError, TypeError, AttributeError):
-            return super().summarize_data()
+            return super().summarize_data(summary_length_bytes)
 
 
 class GetConfigurationDescriptorRequest(GetDescriptorRequest):
@@ -156,7 +156,7 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
         return self.find_last_descriptor(GetInterfaceDescriptorRequest.get_descriptor_number(), subordinate_number)
 
 
-    def summarize_data(self):
+    def summarize_data(self, summary_length_bytes=16):
 
         # FIXME: store the parsed data via validate(), don't read this multiple times
         decoded, length = self.get_decoded_descriptor(use_pretty_names=False)
@@ -166,7 +166,7 @@ class GetConfigurationDescriptorRequest(GetDescriptorRequest):
             # FIXME: provide subordinate descriptor count
             return "{} interface(s)".format(decoded['bNumInterfaces'])
         except (KeyError, TypeError):
-            return super().summarize_data()
+            return super().summarize_data(summary_length_bytes)
 
 
 
@@ -288,13 +288,17 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
             return ('languages supported', self._get_supported_language_strings(data), data, len(data))
 
 
-    def summarize_data(self):
+    def summarize_data(self, summary_length_bytes=32):
 
         # Get the string's data, following the two-byte header.
         string_payload = self.data[2:]
 
         if self.index:
-            return string_payload.decode('utf-16', 'backslashreplace')
+            # HACK: We're cheating a bit, here. summary_length_bytes is supposed to be the length in bytes,
+            # but here it makes more sense to trim based on the length of the decoded string.
+            summary = string_payload.decode('utf-16', 'blackslashreplace')
+            continuation = '...' if len(summary) > summary_length_bytes else ''
+            return "{}{}".format(summary[0:summary_length_bytes], continuation)
         else:
             return ', '.join(self._get_supported_language_strings(string_payload))
 

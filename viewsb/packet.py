@@ -401,6 +401,7 @@ class USBTokenPacket(USBPacket):
 
 
     def summarize_data(self, summary_length_bytes=8):
+        # NOTE: summary_length_bytes is ignored for a token packet.
         return "address={}, endpoint=0x{:02x}, direction={}".format(
                 self.device_address, self.endpoint_number, self.direction)
 
@@ -736,6 +737,7 @@ class USBSetupTransaction(USBTransaction):
 
 
     def summarize_data(self, summary_length_bytes=8):
+        # NOTE: summary_length_bytes is ignored for a SETUP transaction.
         return "value={:04x} index={:04x} length={:04x}".format(self.value, self.index, self.request_length)
 
 

@@ -296,7 +296,7 @@ class GetStringDescriptorRequest(GetDescriptorRequest):
         if self.index:
             # HACK: We're cheating a bit, here. summary_length_bytes is supposed to be the length in bytes,
             # but here it makes more sense to trim based on the length of the decoded string.
-            summary = string_payload.decode('utf-16', 'blackslashreplace')
+            summary = string_payload.decode('utf-16', 'backslashreplace')
             continuation = '...' if len(summary) > summary_length_bytes else ''
             return "{}{}".format(summary[0:summary_length_bytes], continuation)
         else:

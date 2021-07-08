@@ -59,7 +59,7 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
     def get_name_for_class(self, decoded):
 
         try:
-            triplet = decoded.bDeviceClass, decoded.bDeviceSubclass, decoded.bDeviceProtocol
+            triplet = decoded['bDeviceClass'], decoded['bDeviceSubclass'], decoded['bDeviceProtocol']
         except AttributeError:
             return ""
 
@@ -70,12 +70,12 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
             return "vendor-specific"
 
         # XXX: temporary hardcoding
-        if decoded.bDeviceClass == 3:
+        if decoded['bDeviceClass'] == 3:
             return "HID"
-        if decoded.bDeviceClass == 9:
+        if decoded['bDeviceClass'] == 9:
             return "Hub"
 
-        return "{}:{}:{}".format(decoded.bDeviceClass, decoded.bDeviceSubclass, decoded.bDeviceProtocol)
+        return "{}:{}:{}".format(decoded['bDeviceClass'], decoded['bDeviceSubclass'], decoded['bDeviceProtocol'])
 
 
     def summarize_data(self, summary_length_bytes=16):
@@ -86,8 +86,8 @@ class GetDeviceDescriptorRequest(GetDescriptorRequest):
         try:
             class_text = self.get_name_for_class(decoded)
             return "vid={:04x}, pid={:04x}, class={}".format(
-                decoded.idVendor,
-                decoded.idProduct,
+                decoded['idVendor'],
+                decoded['idProduct'],
                 class_text)
         except (KeyError, TypeError, AttributeError):
             return super().summarize_data(summary_length_bytes)

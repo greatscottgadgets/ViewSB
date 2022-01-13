@@ -357,7 +357,7 @@ class USBPacket(ViewSBPacket):
         data = raw_packet[:]
 
         # Extract the PID from the first byte of the packet.
-        packet_id = USBPacketID.parse(data.pop(0))
+        packet_id = data.pop(0)
 
         # Store the remainder of the packet as the packet's data;
         # and wrap this in our packet object.

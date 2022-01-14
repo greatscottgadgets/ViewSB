@@ -14,6 +14,7 @@ from ..backend import ViewSBBackend
 from ..packet import USBPacket
 
 try:
+    # https://pypi.org/project/pypcapfile/
     # https://github.com/kisom/pypcapfile
     from pcapfile import savefile 
 
@@ -70,7 +71,6 @@ class PcapBackend(ViewSBBackend):
             return False
 
 
-
     def setup(self):
         self.setup_queue.put('Opening file ' + self.filenane +' ...')
         
@@ -95,8 +95,6 @@ class PcapBackend(ViewSBBackend):
                 us = pkt.timestamp_us/1000
             else:
                 us = pkt.timestamp_us
-
-            #print (self.packet_index, ts, raw_packet)
 
             self.packet_index = self.packet_index + 1
 

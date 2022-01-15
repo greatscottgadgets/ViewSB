@@ -7,7 +7,6 @@
 
 
 from datetime import timedelta
-
 from time import sleep
 
 from ..backend import ViewSBBackend
@@ -80,6 +79,10 @@ class PcapBackend(ViewSBBackend):
         self.packet_index = 0
         self.packet_count = len(self.pcapdata.packets)
 
+        # report timestamps as offset since first packet, aligned with the way wireshark reports timestamps
+        self.t_start = self.pcapdata.packets[0].timestamp
+        self.t_start_us = self.pcapdata.packets[0].timestamp_us
+
 
     def run_capture(self):
 
@@ -92,16 +95,16 @@ class PcapBackend(ViewSBBackend):
 
             # openvizsla pcap files use nanosecond resolution format; ViewSB expects microseconds
             if (self.pcapdata.header.ns_resolution):                
-                us = pkt.timestamp_us/1000
+                us = (pkt.timestamp_us - self.t_start_us)/1000
             else:
-                us = pkt.timestamp_us
+                us = (pkt.timestamp_us - self.t_start_us )
 
             self.packet_index = self.packet_index + 1
 
             # TODO: handle flags
             packet = USBPacket.from_raw_packet(
                 raw_packet,
-                timestamp=timedelta(microseconds=us),
+                timestamp=timedelta(microseconds=us, seconds=pkt.timestamp-self.t_start),
             )
             # Assume the packet isn't one we're suppressing, emit it to our stack.
             if not self._should_be_suppressed(packet):

@@ -15,7 +15,7 @@ from ..packet import USBPacket
 try:
     # https://pypi.org/project/pypcapfile/
     # https://github.com/kisom/pypcapfile
-    from pcapfile import savefile 
+    from pcapfile import savefile
 
 except (ImportError, ModuleNotFoundError):
     pass
@@ -56,30 +56,37 @@ class PcapBackend(ViewSBBackend):
         super().__init__()
 
         self.filenane = filename
-        self.pcapfile = None
+        self.pcapdata = None
+        self.packet_index = 0
+        self.packet_count = 0
+        self.t_start = 0
+        self.t_start_us = 0
 
         # Store the callback we use to determine if we should suppress packets.
         self.suppress_packet_callback = suppress_packet_callback
 
     def _should_be_suppressed(self, packet):
-        """ Returns true iff the given packet should be suppressed, e.g. because of a user-provided condition. """
+        """ Returns true if the given packet should be suppressed, e.g. because of a user-provided condition. """
 
         if callable(self.suppress_packet_callback):
             return self.suppress_packet_callback(packet)
-        else:
-            return False
+
+        return False
 
 
     def setup(self):
         self.setup_queue.put('Opening file ' + self.filenane +' ...')
-        
-        self.pcapfile = open(self.filenane, 'rb')
-        self.pcapdata = savefile.load_savefile(self.pcapfile,verbose=False)
+
+        pcapfile = open(self.filenane, 'rb')
+        self.pcapdata = savefile.load_savefile(pcapfile,verbose=False)
+        pcapfile.close()
+
 
         self.packet_index = 0
         self.packet_count = len(self.pcapdata.packets)
 
-        # report timestamps as offset since first packet, aligned with the way wireshark reports timestamps
+        # report timestamps as offset since first packet,
+        # (aligned with the way wireshark reports timestamps)
         self.t_start = self.pcapdata.packets[0].timestamp
         self.t_start_us = self.pcapdata.packets[0].timestamp_us
 
@@ -87,32 +94,34 @@ class PcapBackend(ViewSBBackend):
     def run_capture(self):
 
         # while not yet at the end of the file keep pulling packets....
-        if (self.packet_index < self.packet_count):
+        if self.packet_index < self.packet_count:
 
             # read a single packet from pcap file.
             pkt = self.pcapdata.packets[self.packet_index]
             raw_packet = bytearray(pkt.raw())
 
+
+            timestamp_s = pkt.timestamp-self.t_start
+
             # openvizsla pcap files use nanosecond resolution format; ViewSB expects microseconds
-            if (self.pcapdata.header.ns_resolution):                
-                us = (pkt.timestamp_us - self.t_start_us)/1000
+            if self.pcapdata.header.ns_resolution:
+                timestamp_us = (pkt.timestamp_us - self.t_start_us)/1000
             else:
-                us = (pkt.timestamp_us - self.t_start_us )
+                timestamp_us = (pkt.timestamp_us - self.t_start_us )
 
             self.packet_index = self.packet_index + 1
 
             # TODO: handle flags
             packet = USBPacket.from_raw_packet(
                 raw_packet,
-                timestamp=timedelta(microseconds=us, seconds=pkt.timestamp-self.t_start),
+                timestamp=timedelta(microseconds=timestamp_us, seconds = timestamp_s),
             )
             # Assume the packet isn't one we're suppressing, emit it to our stack.
             if not self._should_be_suppressed(packet):
                 self.emit_packet(packet)
         else:
-            # FIXME - nothing to do anymore; stay idle -- should be some way to indicate the gui process to stop capturing
-            if (self.pcapfile):
-                self.pcapfile.close()
-                self.pcapfile = None
+            # FIXME - nothing to do anymore; stay idle
+            #         should be some way to indicate the gui process to stop capturing
+            if self.pcapdata:
                 self.pcapdata = None
             sleep(5)

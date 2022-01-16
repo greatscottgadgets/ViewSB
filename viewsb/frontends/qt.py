@@ -356,15 +356,16 @@ class QtFrontend(ViewSBFrontend):
     # So, Qt's tree widgets require that column 0 have the expand arrow, but you _can_ change
     # where column 0 is displayed.
     # We want the summary column to have the expand arrow, so we'll swap it
-    # with the timestamp column in __init__().
-    COLUMN_TIMESTAMP = 5
-    COLUMN_DEVICE    = 1
-    COLUMN_ENDPOINT  = 2
-    COLUMN_DIRECTION = 3
-    COLUMN_LENGTH    = 4
+    # with the sequence column in __init__().
+    COLUMN_SEQUENCE  = 6
+    COLUMN_TIMESTAMP = 1
+    COLUMN_DEVICE    = 2
+    COLUMN_ENDPOINT  = 3
+    COLUMN_DIRECTION = 4
+    COLUMN_LENGTH    = 5
     COLUMN_SUMMARY   = 0
-    COLUMN_STATUS    = 6
-    COLUMN_DATA      = 7
+    COLUMN_STATUS    = 7
+    COLUMN_DATA      = 8
 
 
     @staticmethod
@@ -406,11 +407,12 @@ class QtFrontend(ViewSBFrontend):
 
             return self._stringify_list([
                 viewsb_packet.summarize(),
+                viewsb_packet.timestamp,
                 viewsb_packet.device_address,
                 viewsb_packet.endpoint_number,
                 direction,
                 length,
-                viewsb_packet.timestamp,
+                viewsb_packet.sequence,
                 viewsb_packet.summarize_status(),
                 viewsb_packet.summarize_data()
                 ]) + [viewsb_packet]
@@ -470,7 +472,7 @@ class QtFrontend(ViewSBFrontend):
         self.window = self.loader.load(self.ui_file) # type: QMainWindow
 
         # Swap columns 0 and 5 to put the expand arrow on the summary column.
-        self.window.usb_tree_widget.header().swapSections(0, 5)
+        self.window.usb_tree_widget.header().swapSections(self.COLUMN_SUMMARY, self.COLUMN_SEQUENCE)
 
         self.window.usb_tree_widget.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 

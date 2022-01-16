@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-This file is part of ViewSB
--->
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -48,11 +45,16 @@ This file is part of ViewSB
        <bool>false</bool>
       </property>
       <property name="columnCount">
-       <number>8</number>
+       <number>9</number>
       </property>
       <column>
        <property name="text">
         <string>summary</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>timestamp</string>
        </property>
       </column>
       <column>
@@ -77,7 +79,7 @@ This file is part of ViewSB
       </column>
       <column>
        <property name="text">
-        <string>timestamp</string>
+        <string>packet#</string>
        </property>
       </column>
       <column>

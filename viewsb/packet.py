@@ -353,15 +353,12 @@ class USBPacket(ViewSBPacket):
     def from_raw_packet(cls, raw_packet, **fields):
         """ Create a new USBPacket object from a raw set of packet data. """
 
-        # Create a copy of the raw packet so we can work with it.
-        data = raw_packet[:]
-
         # Extract the PID from the first byte of the packet.
-        packet_id = data.pop(0)
+        packet_id = raw_packet[0]
 
         # Store the remainder of the packet as the packet's data;
         # and wrap this in our packet object.
-        return cls(pid=packet_id, data=data, **fields)
+        return cls(pid=packet_id, data=raw_packet[1:], **fields)
 
     # TODO: detailed representation
 

@@ -11,7 +11,7 @@ import collections
 from datetime import timedelta
 from construct import *
 
-from usb_protocol.types import USBPacketID
+from usb_protocol.types import USBDirection, USBPacketID
 
 from ..decoder import ViewSBDecoder, UnhandledPacket
 from ..packet import USBPacket, MalformedPacket, USBStartOfFrame, USBStartOfFrameCollection, \
@@ -57,8 +57,12 @@ class USBPacketSpecializer(ViewSBDecoder):
         fields['endpoint_number'] = (fields['data'][1] & 0x07) << 1 | fields['data'][0] >> 7
         fields['crc5']            = fields['data'][1] >> 3
 
-        # Fill direction from PID.
-        fields['direction'] = fields['pid'].direction()
+        if  packet.pid is USBPacketID.PING:
+            # the Special PID Type PING is High-Speed OUT only
+            fields['direction'] = USBDirection.OUT
+        else:
+            # Fill direction from PID.
+            fields['direction'] = fields['pid'].direction()
 
         # Populate a USBTokenPacket with the relevant information...
         new_packet = USBTokenPacket(**fields)
@@ -101,7 +105,7 @@ class USBPacketSpecializer(ViewSBDecoder):
         # Convert the packet according to its group.
         if packet.pid is USBPacketID.SOF:
             self._consume_sof_packet(packet)
-        elif packet.pid.is_token():
+        elif packet.pid.is_token() | (packet.pid is USBPacketID.PING):
             self._consume_token_packet(packet)
         elif packet.pid.is_handshake():
             self._consume_handshake_packet(packet)

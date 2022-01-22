@@ -33,6 +33,8 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
         self.ready             = None
         self.termination_event = None
 
+        self.packet_sequence = 1
+
 
     def set_up_ipc(self, output_queue, setup_queue, ready, termination_event, exception_conn):
         """
@@ -64,6 +66,10 @@ class ViewSBBackend(ViewSBEnumerableFromUI):
 
     def emit_packet(self, packet):
         """ Emits a given ViewSBPacket-derivative to the main decoder thread for analysis. """
+
+        packet.sequence = self.packet_sequence
+        self.packet_sequence += 1
+
         self.output_queue.put(packet)
 
 

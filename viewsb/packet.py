@@ -18,8 +18,6 @@ from usb_protocol.types import USBDirection, USBRequestType, USBRequestRecipient
 # XXX Temporary hack for __repr__.
 print_depth = 0
 
-
-
 class ViewSBStatus(Flag):
     """ Enumeration representing USB packet statuses. """
 
@@ -45,8 +43,9 @@ class ViewSBPacket:
 
     # The fields specific to this class. These are usually accessed using get_fields, which returns
     # the fields defined in the current or any parent class.
-    FIELDS = {'timestamp', 'bus_number', 'device_address', 'endpoint_number', 'direction', 'status', 'style',
-        'data', 'summary', 'data_summary', 'subordinate_packets'}
+    FIELDS = {'sequence', 'timestamp', 'bus_number', 'device_address', 'endpoint_number',
+        'direction', 'status', 'style', 'data', 'summary', 'data_summary',
+        'subordinate_packets'}
 
     # Data format. If a subclass overrides this with a construct Struct or BitStruct, that class
     # can call `parse_data` to automatically parse its data payload.
@@ -179,6 +178,7 @@ class ViewSBPacket:
         Strings can use prompt_toolkit style format specifications.
 
         Keys included:
+            sequence -- Sequential number of packet acquired
             timestamp -- The number of microseconds into the capture at which the given packet occurred.
             length -- The total length of the given packet, in bytes, or None if not applicable.
             device_address -- The address of the relevant USB device, or None if not applicable.
@@ -193,6 +193,7 @@ class ViewSBPacket:
         """
 
         return {
+            'sequence':        self.sequence,
             'timestamp':       self.timestamp,
             'length':          len(self.data) if self.data is not None else None,
             'bus_number':      self.bus_number,
@@ -762,7 +763,7 @@ class USBControlTransfer(USBTransfer):
 
         fields = {}
 
-        additional_fields = ('timestamp', 'endpoint_number', 'device_address', 'recipient')
+        additional_fields = ('sequence', 'timestamp', 'endpoint_number', 'device_address', 'recipient')
         fields_to_copy_from_setup = cls.FIELDS.union(additional_fields)
 
         # Copy each of our local fields from the Setup transaction.

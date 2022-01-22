@@ -757,7 +757,7 @@ class USBSetupTransfer(USBSetupTransaction):
 class USBControlTransfer(USBTransfer):
     """ Class representing a USB control transfer. """
 
-    FIELDS = {'sequence', 'request_type', 'recipient', 'request_number', 'value', 'index', 'request_length', 'stalled'}
+    FIELDS = {'request_type', 'recipient', 'request_number', 'value', 'index', 'request_length', 'stalled'}
 
 
     @classmethod
@@ -766,7 +766,7 @@ class USBControlTransfer(USBTransfer):
 
         fields = {}
 
-        additional_fields = ('timestamp', 'endpoint_number', 'device_address', 'recipient')
+        additional_fields = ('sequence', 'timestamp', 'endpoint_number', 'device_address', 'recipient')
         fields_to_copy_from_setup = cls.FIELDS.union(additional_fields)
 
         # Copy each of our local fields from the Setup transaction.

@@ -366,7 +366,45 @@ class USBPacket(ViewSBPacket):
 
 class USBStartOfFrame(USBPacket):
     """ Class representing a USB start-of-frame (pseudo) packet. """
-    pass
+
+    FIELDS = {'frame_number', 'crc5', 'crc_valid'}
+
+    DATA_FORMAT = BitsSwapped(BitStruct(
+        "frame_number"    / BitsInteger(11),
+        "crc5"            / BitsInteger(5),
+    ))
+
+
+    def validate(self):
+        #parsed = self.parse_data()
+        # TODO: validate crc5
+        pass
+
+
+    def generate_summary(self):
+        return "{}".format(self.pid.summarize())
+
+
+    def summarize_data(self, summary_length_bytes=8):
+        # NOTE: summary_length_bytes is ignored for a token packet.
+        return "frame={}".format(self.frame_number)
+
+
+    def get_detail_fields(self):
+
+        fields = {
+            'Length': '{} bytes'.format(len(self.get_raw_data())),
+            'PID': '{} (0x{:02x})'.format(self.pid.name, self.pid.value),
+            'Frame Number': '{:0d}'.format(self.frame_number),
+            'CRC5': '0x{:02x}'.format(self.crc5)
+        }
+
+        return [(self.generate_summary(), fields)]
+
+
+    def get_raw_data(self):
+        # frame number, and crc5 are included in self.data.
+        return b''.join([bytes([self.pid]), self.data])
 
 
 class USBStartOfFrameCollection(USBPacket):
@@ -374,6 +412,9 @@ class USBStartOfFrameCollection(USBPacket):
 
     def summarize(self):
         return "{} start-of-frame markers".format(len(self.subordinate_packets))
+
+    def summarize_data(self, summary_length_bytes=8):
+        return ""
 
 
 class USBTokenPacket(USBPacket):

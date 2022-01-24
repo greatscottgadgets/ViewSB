@@ -39,7 +39,28 @@ class USBPacketSpecializer(ViewSBDecoder):
 
     def _consume_sof_packet(self, packet):
         """ Consumes a start-of-frame. """
-        self.emit_packet(USBStartOfFrame(**packet.__dict__))
+
+        fields = packet.__dict__.copy()
+
+        # If our packet isn't the right length for a token, emit
+        # a malformed packet.
+        if len(packet.data) != self.TOKEN_PAYLOAD_LENGTH:
+            self.emit_packet(MalformedPacket(**fields))
+            return
+
+        # Extract the frame number, and CRC5.
+        fields['frame_number']  = (fields['data'][1] & 0x07) << 8 | (fields['data'][0] & 0xFF)
+        fields['crc5']            = fields['data'][1] >> 3
+
+        # Fill direction from PID.
+        fields['direction'] = fields['pid'].direction()
+
+        # Populate a USBTokenPacket with the relevant information...
+        new_packet = USBStartOfFrame(**fields)
+
+        # ... and emit the new packet.
+        self.emit_packet(new_packet)
+
 
     def _consume_token_packet(self, packet):
         """ Consumes a packet known to be a token packet. """
@@ -122,12 +143,13 @@ class USBPacketSpecializer(ViewSBDecoder):
 class USBStartOfFrameConglomerator(ViewSBDecoder):
     """ Decoder filter that squishes SOFs into a single packet. """
 
+    INCLUDE_IN_ALL = True
+
     def __init__(self, analyzer):
         super().__init__(analyzer)
 
         # Create a list of contiguous SOFs observed.
         self._packets = []
-
 
 
     def _emit_queued_packets(self):
@@ -137,14 +159,11 @@ class USBStartOfFrameConglomerator(ViewSBDecoder):
         if not self._packets:
             return
 
-
         # Otherwise, create a new collection wrapping all of our captured SOFs.
-        fields_to_copy = self._packets[0].__dict__.copy()
-        #fields_to_copy['subordinate_packets'] = self._packets
-        self.emit_packet(USBStartOfFrameCollection(**fields_to_copy))
-
-        # And start a new collection of queued packets.
-        self._packets.clear()
+        fields = self._packets[0].__dict__.copy()
+        fields['subordinate_packets'] = self._packets
+        self._packets = []
+        self.emit_packet(USBStartOfFrameCollection(**fields))
 
 
     def consume_packet(self, packet):
@@ -155,8 +174,6 @@ class USBStartOfFrameConglomerator(ViewSBDecoder):
         else:
             self._emit_queued_packets()
             raise UnhandledPacket()
-
-
 
 
 class USBTransactionDecoder(ViewSBDecoder):

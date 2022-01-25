@@ -268,12 +268,11 @@ class USBTransactionSpecializer(ViewSBDecoder):
         if packet.token is USBPacketID.SETUP:
                 specialized_type = USBSetupTransaction
         # If we have a DATA token, convert this to a DataTransaction.
-        elif packet.token in (USBPacketID.IN, USBPacketID.OUT):
+        elif packet.token in (USBPacketID.IN, USBPacketID.OUT, USBPacketID.PING):
                 specialized_type = USBDataTransaction
                 fields['data'] = None
 
         # If it's any other kind of transaction, emit it directly.
-        # FIXME: support things like ping?
         else:
             raise UnhandledPacket()
 
@@ -428,6 +427,23 @@ class USBTransferGrouper(ViewSBDecoder):
         # (Setup packets always exist by themselves.)
         if packet.token is USBPacketID.SETUP:
             return True
+
+
+        # the collation of transfers spanning multiple USB packets does not give great results in
+        # all use-cases; eg. streaming data will never complete. This option defeats the infinite
+        # grouping of packets and rather groups the transfers at USB protocol level.
+        #
+        # FIXME -- link to command line option
+        if True:
+            # Ackknowledged IN/OUT transactions terminate the transaction;
+            # PING transactions considered part of the handshake protocol (USB-2 HS)
+            if (packet.token in (USBPacketID.OUT, USBPacketID.IN)) and (packet.handshake is USBPacketID.ACK):
+                return True
+
+            # USB-2 High-Speed protocol; packet successfully accepted but no immediate
+            # space for receiving another OUT; continue with PING protocol.
+            if (packet.token is USBPacketID.OUT) and (packet.handshake is USBPacketID.NYET):
+                return True
 
         return False
 

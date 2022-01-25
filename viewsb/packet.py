@@ -632,7 +632,7 @@ class USBDataTransfer(USBTransaction, USBTransfer):
 
                 # Append the data of all transactions that actually have data to the data of the overall transfer.
                 if isinstance(packet, USBDataTransaction):
-                    if packet.data and packet.handshake == USBPacketID.ACK:
+                    if packet.data and (packet.handshake in (USBPacketID.ACK, USBPacketID.NYET)):
                         self.data.extend(packet.data)
 
         # TODO: validate PID sequence

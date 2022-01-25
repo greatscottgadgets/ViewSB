@@ -293,6 +293,11 @@ class USBTransferGrouper(ViewSBDecoder):
     # Don't include this specializer in all; it's not complete.
     INCLUDE_IN_ALL = True
 
+    # FIXME quick hack to disable the collation of transfers that span multiple usb transactions
+    # in a perfect world this should move to a higher-level grouper so the USBTransferGrouper only
+    # takes care of the grouping at lower level transfers
+    do_not_collate_transfers = True
+
 
     def __init__(self, analyzer):
         super().__init__(analyzer)
@@ -301,11 +306,13 @@ class USBTransferGrouper(ViewSBDecoder):
         # These can be non-contiguous, so
         self.packets_captured = collections.defaultdict(lambda : [])
 
+        # enable the collation of transfers that span multiple USB transfers
+        if (analyzer.args['collate_transfers']):
+            self.do_not_collate_transfers = False
 
     def can_handle_packet(self, packet):
         """ We can handle any non-special transaction. """
         return type(packet) in (USBSetupTransaction, USBDataTransaction)
-
 
 
     def _pipe_identifier_for_packet(self, packet):
@@ -432,9 +439,7 @@ class USBTransferGrouper(ViewSBDecoder):
         # the collation of transfers spanning multiple USB packets does not give great results in
         # all use-cases; eg. streaming data will never complete. This option defeats the infinite
         # grouping of packets and rather groups the transfers at USB protocol level.
-        #
-        # FIXME -- link to command line option
-        if True:
+        if self.do_not_collate_transfers:
             # Ackknowledged IN/OUT transactions terminate the transaction;
             # PING transactions considered part of the handshake protocol (USB-2 HS)
             if (packet.token in (USBPacketID.OUT, USBPacketID.IN)) and (packet.handshake is USBPacketID.ACK):

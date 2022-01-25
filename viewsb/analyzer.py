@@ -28,7 +28,7 @@ class ViewSBAnalyzer:
 
     PACKET_READ_TIMEOUT = 0.1
 
-    def __init__(self, backend, frontend, decoders=None):
+    def __init__(self, backend, frontend, decoders=None, args=None):
         """ Creates a new ViewSB worker object, which is ready to run.
 
         Args:
@@ -39,7 +39,11 @@ class ViewSBAnalyzer:
             decoders -- A list of decoder classes to be applied. If not provided, all known decoders will be attempted;
                         ViewSB decoders are intended to produce sane results with all filters enabled, so this is likely
                         what you want.
+            args     -- arguments for passing options to the analysis stack
         """
+
+        # store our arguments so decoders evaluate relevant options
+        self.args = args
 
         # The fork method is the default for Linux (and macOS prior to Python 3.8), but it's considered unsafe
         # on macOS, and it isn't available on Windows, so we'll use the spawn method for all platforms.

@@ -9,6 +9,7 @@ This file is part of ViewSB
 
 import collections
 from datetime import timedelta
+from construct import StreamError
 
 from usb_protocol.types import USBDirection, USBPacketID
 

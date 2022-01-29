@@ -39,6 +39,17 @@ try:
                 return QSize(0, 0)
 
 
+    class ViewSBPacketsQTreeWidgetItem(QTreeWidgetItem):
+
+        def __lt__(self, otherItem):
+            column = self.treeWidget().sortColumn()
+            return int(self.text(column)) < int(otherItem.text(column))
+
+
+        def __init__(self, parent=None):
+            QTreeWidgetItem.__init__(self, parent)
+
+
     class ViewSBHexView(QTableView):
         """ Modified QTableView suitable for a hexview.
 
@@ -389,13 +400,13 @@ class QtFrontend(ViewSBFrontend):
         return [str(x).replace('\0', r'\0') if x is not None else '' for x in lst]
 
 
-    def _create_item_for_packet(self, viewsb_packet):
-        """ Creates a QTreeWidgetItem for a given ViewSBPacket.
+    def _create_item_for_packet(self, viewsb_packet)->ViewSBPacketsQTreeWidgetItem:
+        """ Creates a ViewSBPacketQTreeWidgetItem for a given ViewSBPacket.
 
         Args:
-            viewsb_packet -- The ViewSBPacket to create the QTreeWidgetItem from.
+            viewsb_packet -- The ViewSBPacket to create the ViewSPacketsBQTreeWidgetItem from.
 
-        Returns a QTreeWidgetItem.
+        Returns a ViewSBPacketQTreeWidgetItem.
         """
 
         def get_packet_string_array(viewsb_packet):
@@ -418,7 +429,7 @@ class QtFrontend(ViewSBFrontend):
                 ]) + [viewsb_packet]
 
 
-        item = QTreeWidgetItem(get_packet_string_array(viewsb_packet))
+        item = ViewSBPacketsQTreeWidgetItem(get_packet_string_array(viewsb_packet))
 
         # Give the item a reference to the original packet object.
         item.setData(0, QtCore.Qt.UserRole, viewsb_packet)
@@ -482,7 +493,9 @@ class QtFrontend(ViewSBFrontend):
         self.window.usb_tree_widget.currentItemChanged.connect(self._tree_current_item_changed)
 
         self.window.usb_tree_widget = self.window.usb_tree_widget
-        self.window.usb_tree_widget.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        self.window.usb_tree_widget.sortByColumn(self.COLUMN_SEQUENCE, Qt.SortOrder.AscendingOrder)
+
+        self.last_sequence = -1
 
 
     def ready(self):
@@ -596,14 +609,23 @@ class QtFrontend(ViewSBFrontend):
         """
 
         top_level_items_list = []
+        out_of_order_packets = False
 
         for viewsb_packet in viewsb_packets:
 
             # Create the item for this packet, and recursively fill its children.
             top_level_items_list.append(self._recursively_walk_packet(viewsb_packet))
 
+            # Check if our top-level packets are received out-of-sequence
+            if viewsb_packet.sequence < self.last_sequence:
+                out_of_order_packets = True
+            self.last_sequence = viewsb_packet.sequence
 
-        self.window.usb_tree_widget.addTopLevelItems(top_level_items_list)
+        if len(top_level_items_list) > 0:
+            self.window.usb_tree_widget.addTopLevelItems(top_level_items_list)
+
+            if out_of_order_packets:
+                self.window.usb_tree_widget.sortByColumn(self.COLUMN_SEQUENCE, Qt.SortOrder.AscendingOrder)
 
 
     def run(self):

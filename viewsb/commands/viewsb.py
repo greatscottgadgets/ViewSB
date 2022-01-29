@@ -102,6 +102,8 @@ def main():
 
     parser.arg_names.append(parser.add_argument('--include-sofs', '-S', action='store_true',
         help="Include USB start-of-frame-markers in the capture; adds a lot of load & noise.").dest)
+    parser.arg_names.append(parser.add_argument('--fragment-transfers', type=int, default=0,
+        help="Fragment large USB Transfers after sucessfully transfered bytes (0 = unlimited).").dest)
     parser.arg_names.append(parser.add_argument('--list-frontends', action='store_true',
         help='List the available capture backends, then quit.').dest)
     parser.arg_names.append(parser.add_argument('--list-backends', action='store_true',
@@ -189,7 +191,8 @@ def main():
     frontend = (frontend_class, frontend_args)
 
     # Create our analyzer object.
-    analyzer = ViewSBAnalyzer(backend, frontend)
+    analyzer_args = {key: args_dict[key] for key in args_dict.keys() & parser.arg_names}
+    analyzer = ViewSBAnalyzer(backend, frontend, args=analyzer_args)
 
     # Unless we're including SOFs, filter them out.
     if not args.include_sofs:

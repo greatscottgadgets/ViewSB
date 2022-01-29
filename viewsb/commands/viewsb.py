@@ -102,8 +102,8 @@ def main():
 
     parser.arg_names.append(parser.add_argument('--include-sofs', '-S', action='store_true',
         help="Include USB start-of-frame-markers in the capture; adds a lot of load & noise.").dest)
-    parser.arg_names.append(parser.add_argument('--collate-transfers', '-C', action='store_true',
-        help="Collate USB Transfers into complete high-level transfers spanning potentially multiple low-level transfers.").dest)
+    parser.arg_names.append(parser.add_argument('--fragment-transfers', type=int, default=0,
+        help="Fragment large USB Transfers after sucessfully transfered bytes (0 = unlimited).").dest)
     parser.arg_names.append(parser.add_argument('--list-frontends', action='store_true',
         help='List the available capture backends, then quit.').dest)
     parser.arg_names.append(parser.add_argument('--list-backends', action='store_true',

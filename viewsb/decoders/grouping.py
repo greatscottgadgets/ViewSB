@@ -9,7 +9,6 @@ This file is part of ViewSB
 
 import collections
 from datetime import timedelta
-from construct import *
 
 from usb_protocol.types import USBDirection, USBPacketID
 
@@ -283,11 +282,11 @@ class USBTransactionSpecializer(ViewSBDecoder):
 
         # If we have a SETUP token, convert this to a SetupTransaction.
         if packet.token is USBPacketID.SETUP:
-                specialized_type = USBSetupTransaction
+            specialized_type = USBSetupTransaction
         # If we have a DATA token, convert this to a DataTransaction.
         elif packet.token in (USBPacketID.IN, USBPacketID.OUT, USBPacketID.PING):
-                specialized_type = USBDataTransaction
-                fields['data'] = None
+            specialized_type = USBDataTransaction
+            fields['data'] = None
 
         # If it's any other kind of transaction, emit it directly.
         else:
@@ -310,10 +309,8 @@ class USBTransferGrouper(ViewSBDecoder):
     # Don't include this specializer in all; it's not complete.
     INCLUDE_IN_ALL = True
 
-    # FIXME quick hack to disable the collation of transfers that span multiple usb transactions
-    # in a perfect world this should move to a higher-level grouper so the USBTransferGrouper only
-    # takes care of the grouping at lower level transfers
-    do_not_collate_transfers = True
+    # Fragment the transfer once a specified number of bytes has been succesfully transferred
+    fragment_transfers = 0
 
 
     def __init__(self, analyzer):
@@ -323,9 +320,14 @@ class USBTransferGrouper(ViewSBDecoder):
         # These can be non-contiguous, so
         self.packets_captured = collections.defaultdict(lambda : [])
 
+        # Keep track of the number of bytes successfull transferred
+        self.bytes_transferred = collections.defaultdict(int)
+
+
         # enable the collation of transfers that span multiple USB transfers
-        if (analyzer.args['collate_transfers']):
-            self.do_not_collate_transfers = False
+        # argument is the number of bytes at which the transfer should be fragmented
+        if (analyzer.args['fragment_transfers']):
+            self.fragment_transfers = analyzer.args['fragment_transfers']
 
     def can_handle_packet(self, packet):
         """ We can handle any non-special transaction. """
@@ -385,6 +387,7 @@ class USBTransferGrouper(ViewSBDecoder):
 
         # Start a new packet capture.
         self.packets_captured[pipe_identifier] = []
+        self.bytes_transferred[pipe_identifier] = 0
 
         # Special case: if have just a setup packet, emit it immediately as a
         if packets[0].token is USBPacketID.SETUP:
@@ -401,7 +404,7 @@ class USBTransferGrouper(ViewSBDecoder):
         # Emit a single data transfer containing all of our packets.
         self._emit_data_transfer_from_packets(packets)
 
-        # If we captured a stauts packet; emit it.
+        # If we captured a status packet; emit it.
         if status_packet:
             self._emit_data_transfer_from_packets([status_packet])
 
@@ -454,17 +457,29 @@ class USBTransferGrouper(ViewSBDecoder):
 
 
         # the collation of transfers spanning multiple USB packets does not give great results in
-        # all use-cases; eg. streaming data will never complete. This option defeats the infinite
-        # grouping of packets and rather groups the transfers at USB protocol level.
-        if self.do_not_collate_transfers:
-            # Ackknowledged IN/OUT transactions terminate the transaction;
+        # all use-cases; eg. streaming data will never complete. This option allows to limit the
+        # size of the collated transfers by fragmenting the transfer once a configurable number of
+        # bytes have successfully been transferred
+        if self.fragment_transfers > 0:
+
+            # Ackknowledged IN/OUT transactions indicate a sucessfull transaction;
             # PING transactions considered part of the handshake protocol (USB-2 HS)
-            if (packet.token in (USBPacketID.OUT, USBPacketID.IN)) and (packet.handshake is USBPacketID.ACK):
-                return True
+            if ((packet.token in (USBPacketID.OUT, USBPacketID.IN))
+                and (packet.handshake is USBPacketID.ACK)
+                and (packet.data is not None)
+            ):
+                self.bytes_transferred[pipe] += len(packet.data)
 
             # USB-2 High-Speed protocol; packet successfully accepted but no immediate
             # space for receiving another OUT; continue with PING protocol.
-            if (packet.token is USBPacketID.OUT) and (packet.handshake is USBPacketID.NYET):
+            if ((packet.token is USBPacketID.OUT)
+                and (packet.handshake is USBPacketID.NYET)
+                and (packet.data is not None)
+            ):
+                self.bytes_transferred[pipe] += len(packet.data)
+
+            # fragment the transfer if the fragmentation size has been reached
+            if self.bytes_transferred[pipe] >= self.fragment_transfers:
                 return True
 
         return False

@@ -1,5 +1,7 @@
 # ViewSB: open-source USB Analyzer software
 
+## ⚠️ This repository is archived. ViewSB is no longer being developed and has been replaced by [Packetry](https://github.com/greatscottgadgets/packetry).
+
 ViewSB is a USB analyzer that supports various capture backends including [GreatFET](https://greatscottgadgets.com/greatfet), [OpenVizsla](https://github.com/openvizsla/ov_ftdi), and [usbmon](https://www.kernel.org/doc/Documentation/usb/usbmon.txt).
 
 --------------------
